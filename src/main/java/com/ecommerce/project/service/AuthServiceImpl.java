@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -116,5 +116,39 @@ public class UserServiceImpl implements UserService {
 
         user.setRoles(roles);
         userRepository.save(user);
+    }
+
+    @Override
+    public String currentUserName(Authentication authentication) {
+        if (authentication != null) {
+            return authentication.getName();
+        }
+        else {
+            return "";
+        }
+    }
+
+    @Override
+    public UserInfoResponse getUserDetails(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .toList();
+
+        UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
+                userDetails.getUsername(), roles);
+
+        return response;
+    }
+
+    @Override
+    public AuthResponseWrapper signoutUser() {
+        ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
+        return new AuthResponseWrapper(null, cookie);
     }
 }
