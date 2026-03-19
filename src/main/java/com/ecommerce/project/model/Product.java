@@ -1,6 +1,7 @@
 package com.ecommerce.project.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -31,7 +32,10 @@ public class Product {
     @NotBlank
     @Size(min = 6, message = "Product description must contain at least 6 characters.")
     private String description;
+
+    @Min(value = 0, message = "Product quantity cannot be negative")
     private Integer quantity;
+
     private Double price;
     private Double discount;
     private Double specialPrice;
@@ -48,4 +52,10 @@ public class Product {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE},
             fetch = FetchType.EAGER)
     private List<CartItem> cartItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+            fetch = FetchType.EAGER)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
 }

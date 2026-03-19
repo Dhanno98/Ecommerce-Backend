@@ -1,5 +1,6 @@
 package com.ecommerce.project.payload;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -22,7 +23,9 @@ public class ProductDTO {
     @Size(min = 6, message = "Product description must contain at least 6 characters.")
     private String description;
 
+    @Min(value = 0, message = "Product quantity cannot be negative")
     private Integer quantity;
+
     private Double price;
     private Double discount;
     private Double specialPrice;
