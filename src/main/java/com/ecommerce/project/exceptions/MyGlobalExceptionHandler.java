@@ -54,6 +54,6 @@ public class MyGlobalExceptionHandler {
         map.put("message", "Requested quantity for these items is greater than the available stock! Please remove excess items and then place the order.");
         map.put("excess items", e.getMap());
         map.put("status", false);
-        return new ResponseEntity<>(map, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
     }
 }
