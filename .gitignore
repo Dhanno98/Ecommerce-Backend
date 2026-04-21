@@ -34,3 +34,6 @@ build/
 
 ### Environemnt Variables ###
 .env
+
+### Image folder
+images/
