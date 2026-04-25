@@ -64,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
                 .toList();
 
         UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-                userDetails.getUsername(), roles, jwtCookie.toString());
+                userDetails.getUsername(), roles, userDetails.getEmail(), jwtCookie.toString());
 
         return new AuthResponseWrapper(response, jwtCookie);
     }
