@@ -1,20 +1,23 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.payload.AuthenticationResult;
+import com.ecommerce.project.payload.UserResponse;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
-import com.ecommerce.project.security.response.AuthResponseWrapper;
 import com.ecommerce.project.security.response.UserInfoResponse;
 import org.springframework.security.core.Authentication;
 
 public interface AuthService {
-    AuthResponseWrapper authenticateUser(LoginRequest loginRequest);
+    AuthenticationResult login(LoginRequest loginRequest);
 
-    void registerUser(SignupRequest signupRequest);
+    void register(SignupRequest signupRequest);
 
     String currentUserName(Authentication authentication);
 
-    UserInfoResponse getUserDetails(Authentication authentication);
+    UserInfoResponse getCurrentUserDetails(Authentication authentication);
 
-    AuthResponseWrapper signoutUser();
+    AuthenticationResult logoutUser();
+
+    UserResponse getAllSellers(Integer pageNumber);
 }
 

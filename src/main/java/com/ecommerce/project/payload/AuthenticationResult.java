@@ -1,12 +1,13 @@
-package com.ecommerce.project.security.response;
+package com.ecommerce.project.payload;
 
+import com.ecommerce.project.security.response.UserInfoResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.ResponseCookie;
 
 @Data
 @AllArgsConstructor
-public class AuthResponseWrapper {
+public class AuthenticationResult {
     private UserInfoResponse userInfoResponse;
     private ResponseCookie jwtCookie;
 }

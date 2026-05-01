@@ -1,18 +1,27 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
+import com.ecommerce.project.payload.AuthenticationResult;
+import com.ecommerce.project.payload.UserDTO;
+import com.ecommerce.project.payload.UserResponse;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
 import com.ecommerce.project.security.jwt.JwtUtils;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
-import com.ecommerce.project.security.response.AuthResponseWrapper;
 import com.ecommerce.project.security.response.UserInfoResponse;
 import com.ecommerce.project.security.services.UserDetailsImpl;
+import jakarta.transaction.Transactional;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@Transactional
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
@@ -44,8 +54,11 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
-    public AuthResponseWrapper authenticateUser(LoginRequest loginRequest) throws AuthenticationException {
+    public AuthenticationResult login(LoginRequest loginRequest) throws AuthenticationException {
         Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(),
@@ -66,11 +79,11 @@ public class AuthServiceImpl implements AuthService {
         UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
                 userDetails.getUsername(), roles, userDetails.getEmail(), jwtCookie.toString());
 
-        return new AuthResponseWrapper(response, jwtCookie);
+        return new AuthenticationResult(response, jwtCookie);
     }
 
     @Override
-    public void registerUser(SignupRequest signupRequest) {
+    public void register(SignupRequest signupRequest) {
         if (userRepository.existsByUserName(signupRequest.getUsername())) {
             throw new APIException("Error: Username is already taken!");
         }
@@ -129,26 +142,53 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public UserInfoResponse getUserDetails(Authentication authentication) {
+    public UserInfoResponse getCurrentUserDetails(Authentication authentication) {
         if (authentication == null) {
             return null;
         }
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
+        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .toList();
 
         UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-                userDetails.getUsername(), roles);
+                userDetails.getUsername(), roles, userDetails.getEmail(), jwtCookie.toString());
 
         return response;
     }
 
     @Override
-    public AuthResponseWrapper signoutUser() {
+    public AuthenticationResult logoutUser() {
         ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
-        return new AuthResponseWrapper(null, cookie);
+        return new AuthenticationResult(null, cookie);
+    }
+
+    @Override
+    public UserResponse getAllSellers(Integer pageNumber) {
+        Sort sortByAndOrder = Sort.by(AppConstants.SORT_USERS_BY).descending();
+        Pageable pageable = PageRequest.of(
+                pageNumber,
+                Integer.parseInt(AppConstants.PAGE_SIZE),
+                sortByAndOrder
+        );
+
+        Page<User> allUsers = userRepository.findByRoleName(AppRole.ROLE_SELLER, pageable);
+        List<UserDTO> userDTOS = allUsers.getContent()
+                .stream()
+                .map(user -> modelMapper.map(user, UserDTO.class))
+                .toList();
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setContent(userDTOS);
+        userResponse.setPageNumber(allUsers.getNumber());
+        userResponse.setPageSize(allUsers.getSize());
+        userResponse.setTotalElements(allUsers.getTotalElements());
+        userResponse.setTotalPages(allUsers.getTotalPages());
+        userResponse.setLastPage(allUsers.isLast());
+        return userResponse;
     }
 }
