@@ -46,7 +46,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "400", description = "Invalid Input", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server error", content = @Content)
     })
-    @PostMapping("/public/categories")
+    @PostMapping("/admin/categories")
     public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
         CategoryDTO savedCategoryDTO = categoryService.createCategory(categoryDTO);
         return new ResponseEntity<>(savedCategoryDTO, HttpStatus.CREATED);
@@ -71,11 +71,27 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Category does not exist", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server error", content = @Content)
     })
-    @PutMapping("/public/categories/{categoryId}")
+    @PutMapping("/admin/categories/{categoryId}")
     public ResponseEntity<CategoryDTO> updateCategory(@Valid @RequestBody CategoryDTO categoryDTO,
                                                       @Parameter(description = "ID of the Category that you wish to update") @PathVariable Long categoryId) {
         CategoryDTO updatedCategoryDTO = categoryService.updateCategory(categoryDTO, categoryId);
         return new ResponseEntity<>(updatedCategoryDTO, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get category", description = "API to get all categories")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All Categories found successfully"),
+            @ApiResponse(responseCode = "400", description = "No categories yet", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Internal Server error", content = @Content)
+    })
+    @GetMapping("/admin/categories")
+    public ResponseEntity<CategoryResponse> getAllCategoriesForAdmin(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_CATEGORIES_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
+        CategoryResponse categoryResponse = categoryService.getAllCategoriesForAdmin(pageNumber, pageSize, sortBy, sortOrder);
+        return new ResponseEntity<>(categoryResponse, HttpStatus.OK);
     }
 
 }
