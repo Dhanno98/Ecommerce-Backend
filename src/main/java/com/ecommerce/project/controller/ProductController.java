@@ -90,4 +90,41 @@ public class ProductController {
         ProductResponse productResponse = productService.getAllProductsForAdmin(pageNumber, pageSize, sortBy, sortOrder);
         return new ResponseEntity<>(productResponse, HttpStatus.OK);
     }
+
+    @PostMapping("/seller/categories/{categoryId}/product")
+    public ResponseEntity<ProductDTO> addProductSeller(@Valid @RequestBody ProductDTO productDTO,
+                                                 @PathVariable Long categoryId) {
+        ProductDTO savedProductDTO = productService.addProduct(categoryId, productDTO);
+        return new ResponseEntity<>(savedProductDTO, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/seller/products")
+    public ResponseEntity<ProductResponse> getAllProductsForSeller(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_PRODUCTS_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
+        ProductResponse productResponse = productService.getAllProductsForSeller(pageNumber, pageSize, sortBy, sortOrder);
+        return new ResponseEntity<>(productResponse, HttpStatus.OK);
+    }
+
+    @PutMapping("/seller/products/{productId}")
+    public ResponseEntity<ProductDTO> updateProductSeller(@Valid @RequestBody ProductDTO productDTO,
+                                                          @PathVariable Long productId) {
+        ProductDTO updatedProductDTO = productService.updateProductSeller(productDTO, productId);
+        return new ResponseEntity<>(updatedProductDTO, HttpStatus.OK);
+    }
+
+    @PutMapping("/seller/products/{productId}/image")
+    public ResponseEntity<ProductDTO> updateProductImageSeller(@PathVariable Long productId,
+                                                         @RequestParam("image")MultipartFile image) throws IOException {
+        ProductDTO updatedProductDTO = productService.updateProductImageSeller(productId, image);
+        return new ResponseEntity<>(updatedProductDTO, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/seller/products/{productId}")
+    public ResponseEntity<ProductDTO> deleteProductSeller(@PathVariable Long productId) {
+        ProductDTO deletedProductDTO = productService.deleteProductSeller(productId);
+        return new ResponseEntity<>(deletedProductDTO, HttpStatus.OK);
+    }
 }
