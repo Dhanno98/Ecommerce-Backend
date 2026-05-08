@@ -3,22 +3,20 @@ package com.ecommerce.project.service;
 import com.ecommerce.project.payload.StripePaymentDTO;
 import com.ecommerce.project.repositories.AddressRepository;
 import com.stripe.Stripe;
-import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
-import com.stripe.model.StripeSearchResult;
 import com.stripe.param.CustomerCreateParams;
-import com.stripe.param.CustomerSearchParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class StripeServiceImpl implements StripeService {
 
     @Value("${stripe.secret.key}")
@@ -29,8 +27,7 @@ public class StripeServiceImpl implements StripeService {
         Stripe.apiKey = stripeApiKey;
     }
 
-    @Autowired
-    private AddressRepository addressRepository;
+    private final AddressRepository addressRepository;
 
     @Override
     public PaymentIntent paymentIntent(StripePaymentDTO stripePaymentDTO) throws StripeException {
