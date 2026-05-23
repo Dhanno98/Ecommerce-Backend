@@ -4,22 +4,25 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Setter;
 
 @Entity
 @Table(name = "addresses")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Address {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+            name = "address_seq_generator",
+            sequenceName = "address_seq",
+            allocationSize = 1
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "address_seq_generator")
     private Long addressId;
 
     @NotBlank
@@ -43,11 +46,11 @@ public class Address {
     private String country;
 
     @NotBlank
-    @Size(min = 6, message = "Pincode name must be at least 6 characters")
+    @Size(min = 6, message = "Pincode must be at least 6 characters")
     private String pincode;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     public Address(String street, String buildingName, String city, String state, String country, String pincode) {
