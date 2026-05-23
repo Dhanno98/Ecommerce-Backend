@@ -37,3 +37,6 @@ build/
 
 ### Image folder
 images/
+
+### Questions file
+src/Questions.md

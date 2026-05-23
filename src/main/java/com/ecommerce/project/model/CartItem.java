@@ -1,30 +1,48 @@
 package com.ecommerce.project.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "cart_items")
+@Table(name = "cart_items",
+        uniqueConstraints = {
+            @UniqueConstraint(columnNames = {"cart_id", "product_id"})
+        }
+)
 public class CartItem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+            name = "cart_item_seq_generator",
+            sequenceName = "cart_item_seq",
+            allocationSize = 1
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_item_seq_generator")
     private Long cartItemId;
 
     @ManyToOne
-    @JoinColumn(name = "cart_id")
+    @JoinColumn(name = "cart_id", nullable = false)
     private Cart cart;
 
     @ManyToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Min(1)
+    @Column(nullable = false)
     private Integer quantity;
+
+    @Column(nullable = false)
     private Double discount;
+
+    @Column(nullable = false)
     private Double productPrice;
 }
