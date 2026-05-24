@@ -7,6 +7,8 @@ import com.ecommerce.project.payload.CategoryDTO;
 import com.ecommerce.project.payload.CategoryResponse;
 import com.ecommerce.project.repositories.CategoryRepository;
 import com.ecommerce.project.repositories.ProductRepository;
+import com.ecommerce.project.util.PaginationValidator;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -27,8 +29,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final ModelMapper modelMapper;
 
+    private final PaginationValidator paginationValidator;
+
+    private static final List<String> ALLOWED_SORT_FIELDS = List.of("categoryId", "categoryName");
+
     @Override
     public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
+
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
 
@@ -36,9 +44,6 @@ public class CategoryServiceImpl implements CategoryService {
         Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
 
         List<Category> categories = categoryPage.getContent();
-        if (categories.isEmpty()) {
-            throw new APIException("No category created till now.");
-        }
 
         List<CategoryDTO> categoryDTOS = categories.stream()
                 .map(category -> modelMapper.map(category, CategoryDTO.class))
@@ -56,11 +61,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
-        Category category = modelMapper.map(categoryDTO, Category.class);
-        Category categoryFromDb = categoryRepository.findByCategoryName(category.getCategoryName());
-        if (categoryFromDb != null) {
-            throw new APIException("Category with the name: " + category.getCategoryName() + " already exists !!!");
+        String normalizedCategoryName = categoryDTO.getCategoryName().trim().toLowerCase();
+
+        if (categoryRepository.existsByCategoryName(normalizedCategoryName)) {
+            throw new APIException("Category with the name: '" + normalizedCategoryName + "' already exists !!!");
         }
+
+        categoryDTO.setCategoryName(normalizedCategoryName);
+        Category category = modelMapper.map(categoryDTO, Category.class);
         Category savedCategory = categoryRepository.save(category);
         return modelMapper.map(savedCategory, CategoryDTO.class);
     }
@@ -78,25 +86,25 @@ public class CategoryServiceImpl implements CategoryService {
         return modelMapper.map(category, CategoryDTO.class);
     }
 
+    @Transactional
     @Override
     public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
-        Category category = modelMapper.map(categoryDTO, Category.class);
-        Category categoryFromDb = categoryRepository.findByCategoryName(category.getCategoryName());
-        if (categoryFromDb != null) {
-            throw new APIException("Category with the name: " + category.getCategoryName() + " already exists !!!");
+        String categoryName = categoryDTO.getCategoryName().trim().toLowerCase();
+
+        if (categoryRepository.existsByCategoryNameAndCategoryIdNot(categoryName, categoryId)) {
+            throw new APIException("Category with the name: '" + categoryName + "' already exists !!!");
         }
-        Category updatedCategory = categoryRepository.findById(categoryId)
-                .map(category1 -> {
-                    category1.setCategoryName(category.getCategoryName());
-                    categoryRepository.save(category1);
-                    return category1;
-                })
+        Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
-        return modelMapper.map(updatedCategory, CategoryDTO.class);
+
+        category.setCategoryName(categoryName);
+        return modelMapper.map(category, CategoryDTO.class);
     }
 
     @Override
     public CategoryResponse getAllCategoriesForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
+
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
 
@@ -104,9 +112,6 @@ public class CategoryServiceImpl implements CategoryService {
         Page<Category> categoryPage = categoryRepository.findAll(pageDetails);
 
         List<Category> categories = categoryPage.getContent();
-        if (categories.isEmpty()) {
-            throw new APIException("No category created till now.");
-        }
 
         List<CategoryDTO> categoryDTOS = categories.stream()
                 .map(category -> modelMapper.map(category, CategoryDTO.class))

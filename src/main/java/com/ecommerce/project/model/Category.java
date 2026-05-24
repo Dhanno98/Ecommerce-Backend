@@ -30,6 +30,7 @@ public class Category {
 
     @NotBlank
     @Size(min = 5, message = "Category name must contain at least 5 characters")
+    @Column(nullable = false, unique = true)
     private String categoryName;
 
     @OneToMany(mappedBy = "category", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
