@@ -5,7 +5,8 @@ import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
-import com.ecommerce.project.security.jwt.AuthEntryPointJwt;
+import com.ecommerce.project.security.handlers.AuthEntryPointJwt;
+import com.ecommerce.project.security.handlers.CustomAccessDeniedHandler;
 import com.ecommerce.project.security.jwt.AuthTokenFilter;
 import com.ecommerce.project.security.jwt.JwtUtils;
 import com.ecommerce.project.security.services.UserDetailsServiceImpl;
@@ -40,6 +41,8 @@ public class WebSecurityConfig {
 
     private final AuthEntryPointJwt unauthorizedHandler;
 
+    private final CustomAccessDeniedHandler accessDeniedHandler;
+
     private final JwtUtils jwtUtils;
 
     @Bean
@@ -70,14 +73,17 @@ public class WebSecurityConfig {
 
         http.cors(cors -> {});
 
-        http.exceptionHandling(exception ->
-                exception.authenticationEntryPoint(unauthorizedHandler));
+        http.exceptionHandling(exception -> exception
+                .authenticationEntryPoint(unauthorizedHandler)
+                .accessDeniedHandler(accessDeniedHandler));
 
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.authorizeHttpRequests(auth ->
-                auth.requestMatchers("/api/auth/**").permitAll()
+                auth.requestMatchers("/api/auth/signin").permitAll()
+                        .requestMatchers("/api/auth/signup").permitAll()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()

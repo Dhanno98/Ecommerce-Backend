@@ -1,8 +1,8 @@
 package com.ecommerce.project.controller;
 
 import com.ecommerce.project.config.AppConstants;
-import com.ecommerce.project.payload.AuthenticationResult;
-import com.ecommerce.project.payload.UserResponse;
+import com.ecommerce.project.payload.PromoteRoleRequestDTO;
+import com.ecommerce.project.payload.SellerResponse;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.MessageResponse;
@@ -10,7 +10,6 @@ import com.ecommerce.project.security.response.UserInfoResponse;
 import com.ecommerce.project.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,17 +23,15 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signin")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        AuthenticationResult result = authService.login(loginRequest);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, result.getJwtCookie().toString())
-                .body(result.getUserInfoResponse());
+    public ResponseEntity<UserInfoResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+        UserInfoResponse response = authService.login(loginRequest);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
         authService.register(signupRequest);
-        return new ResponseEntity<>(new MessageResponse("User registered successfully!"), HttpStatus.OK);
+        return new ResponseEntity<>(new MessageResponse("User registered successfully!"), HttpStatus.CREATED);
     }
 
     @GetMapping("/username")
@@ -43,27 +40,32 @@ public class AuthController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<?> getUserDetails(Authentication authentication) {
+    public ResponseEntity<UserInfoResponse> getUserDetails(Authentication authentication) {
         UserInfoResponse response = authService.getCurrentUserDetails(authentication);
-        if (response == null) {
-            return new ResponseEntity<>("No user data", HttpStatus.OK);
-        }
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<?> signoutUser() {
-        AuthenticationResult authWrapper = authService.logoutUser();
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, authWrapper.getJwtCookie().toString())
-                .body(new MessageResponse("You've been signed out!"));
+    public ResponseEntity<MessageResponse> signoutUser() {
+        return ResponseEntity.ok().body(new MessageResponse("You've been signed out!"));
     }
 
-    @GetMapping("/sellers")
-    public ResponseEntity<?> getAllSellers(
-            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber
+    @GetMapping("/admin/sellers")
+    public ResponseEntity<SellerResponse> getAllSellers(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_USERS_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
     ) {
-        UserResponse userResponse = authService.getAllSellers(pageNumber);
+        SellerResponse userResponse = authService.getAllSellers(pageNumber, pageSize, sortBy, sortOrder);
         return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
+
+    @PostMapping("/admin/users/{userId}/promote")
+    public ResponseEntity<MessageResponse> promoteUser(@PathVariable Long userId,
+                                                       @Valid @RequestBody PromoteRoleRequestDTO requestDTO) {
+        authService.promoteUser(userId, requestDTO);
+        return new ResponseEntity<>(new MessageResponse("User promoted successfully!"), HttpStatus.OK);
+    }
+
 }

@@ -1,14 +1,14 @@
 package com.ecommerce.project.service;
 
-import com.ecommerce.project.payload.AuthenticationResult;
-import com.ecommerce.project.payload.UserResponse;
+import com.ecommerce.project.payload.PromoteRoleRequestDTO;
+import com.ecommerce.project.payload.SellerResponse;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.UserInfoResponse;
 import org.springframework.security.core.Authentication;
 
 public interface AuthService {
-    AuthenticationResult login(LoginRequest loginRequest);
+    UserInfoResponse login(LoginRequest loginRequest);
 
     void register(SignupRequest signupRequest);
 
@@ -16,8 +16,10 @@ public interface AuthService {
 
     UserInfoResponse getCurrentUserDetails(Authentication authentication);
 
-    AuthenticationResult logoutUser();
+//    AuthenticationResult logoutUser();
 
-    UserResponse getAllSellers(Integer pageNumber);
+    SellerResponse getAllSellers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+
+    void promoteUser(Long userId, PromoteRoleRequestDTO requestDTO);
 }
 

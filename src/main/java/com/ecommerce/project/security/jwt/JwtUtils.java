@@ -1,20 +1,16 @@
 package com.ecommerce.project.security.jwt;
 
-import com.ecommerce.project.security.services.UserDetailsImpl;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.WebUtils;
 
 import javax.crypto.SecretKey;
 import java.security.Key;
@@ -30,18 +26,8 @@ public class JwtUtils {
     @Value("${spring.app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${spring.app.jwtCookieName}")
-    private String jwtCookie;
-
-    // Get JWT Token from Browser Cookie
-    public String getJwtFromCookies(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, jwtCookie);
-        if (cookie != null) {
-            return cookie.getValue();
-        } else {
-            return null;
-        }
-    }
+//    @Value("${spring.app.jwtCookieName}")
+//    private String jwtCookie;
 
     // Get JWT Token from Header
     public String getJwtFromHeader(HttpServletRequest request) {
@@ -50,26 +36,6 @@ public class JwtUtils {
             return bearerToken.substring(7);
         }
         return null;
-    }
-
-    // Generate JWT Cookie from JWT Token
-    public ResponseCookie generateJwtCookie(UserDetailsImpl userDetails) {
-        String jwtToken = generateTokenFromUsername(userDetails.getUsername());
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwtToken)
-                .path("/api")
-                .maxAge(24 * 60 * 60)
-                .httpOnly(false)
-                .secure(false)  // must be set true for production.
-                .build();
-        return cookie;
-    }
-
-    // Get Clean JWT Cookie
-    public ResponseCookie getCleanJwtCookie() {
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null)
-                .path("/api")
-                .build();
-        return cookie;
     }
 
     // Generating Token from Username
@@ -98,7 +64,7 @@ public class JwtUtils {
     // Validate JWT Token
     public boolean validateJwtToken(String authToken) {
         try {
-            System.out.println("Validate");
+            logger.debug("Validating JWT token");
             Jwts.parser()
                     .verifyWith((SecretKey) key())
                     .build()
@@ -115,5 +81,35 @@ public class JwtUtils {
         }
         return false;
     }
+
+//     Get JWT Token from Browser Cookie
+//    public String getJwtFromCookies(HttpServletRequest request) {
+//        Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+//        if (cookie != null) {
+//            return cookie.getValue();
+//        } else {
+//            return null;
+//        }
+//    }
+
+//     Generate JWT Cookie from JWT Token
+//    public ResponseCookie generateJwtCookie(UserDetailsImpl userDetails) {
+//        String jwtToken = generateTokenFromUsername(userDetails.getUsername());
+//        ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwtToken)
+//                .path("/api")
+//                .maxAge(24 * 60 * 60)
+//                .httpOnly(false)
+//                .secure(false)  // must be set true for production.
+//                .build();
+//        return cookie;
+//    }
+
+//     Get Clean JWT Cookie
+//    public ResponseCookie getCleanJwtCookie() {
+//        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null)
+//                .path("/api")
+//                .build();
+//        return cookie;
+//    }
 
 }

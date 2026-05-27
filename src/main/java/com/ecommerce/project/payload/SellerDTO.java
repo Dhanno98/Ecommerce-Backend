@@ -12,11 +12,10 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDTO {
+public class SellerDTO {
     private Long userId;
     private String username;
     private String email;
     private Set<String> roles = new HashSet<>();
     private List<AddressDTO> addresses = new ArrayList<>();
-    private CartDTO cart;
 }
