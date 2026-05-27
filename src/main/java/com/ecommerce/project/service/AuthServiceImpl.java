@@ -1,13 +1,14 @@
 package com.ecommerce.project.service;
 
-import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.exceptions.APIException;
+import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
-import com.ecommerce.project.payload.AuthenticationResult;
-import com.ecommerce.project.payload.UserDTO;
-import com.ecommerce.project.payload.UserResponse;
+import com.ecommerce.project.payload.AddressDTO;
+import com.ecommerce.project.payload.PromoteRoleRequestDTO;
+import com.ecommerce.project.payload.SellerDTO;
+import com.ecommerce.project.payload.SellerResponse;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
 import com.ecommerce.project.security.jwt.JwtUtils;
@@ -15,6 +16,7 @@ import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.UserInfoResponse;
 import com.ecommerce.project.security.services.UserDetailsImpl;
+import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -22,7 +24,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -52,8 +54,12 @@ public class AuthServiceImpl implements AuthService {
 
     private final ModelMapper modelMapper;
 
+    private final PaginationValidator paginationValidator;
+
+    private static final List<String> ALLOWED_SORT_FIELDS = List.of("userId", "userName", "email");
+
     @Override
-    public AuthenticationResult login(LoginRequest loginRequest) throws AuthenticationException {
+    public UserInfoResponse login(LoginRequest loginRequest) throws AuthenticationException {
         Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(),
@@ -65,125 +71,134 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+        String username = userDetails.getUsername();
+        String jwtToken = jwtUtils.generateTokenFromUsername(username);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .toList();
 
-        UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-                userDetails.getUsername(), roles, userDetails.getEmail(), jwtCookie.toString());
-
-        return new AuthenticationResult(response, jwtCookie);
+        return new UserInfoResponse(userDetails.getId(),
+                userDetails.getUsername(), roles, userDetails.getEmail(), jwtToken);
     }
 
     @Override
     public void register(SignupRequest signupRequest) {
-        if (userRepository.existsByUserName(signupRequest.getUsername())) {
+        String normalizedUsername = signupRequest.getUsername().trim().toLowerCase();
+        String normalizedEmail = signupRequest.getEmail().trim().toLowerCase();
+
+        if (userRepository.existsByUserName(normalizedUsername)) {
             throw new APIException("Error: Username is already taken!");
         }
 
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new APIException("Error: Email is already in use!");
         }
 
         User user = new User(
-                signupRequest.getUsername(),
-                signupRequest.getEmail(),
+                normalizedUsername,
+                normalizedEmail,
                 passwordEncoder.encode(signupRequest.getPassword())
         );
 
-        Set<String> strRoles = signupRequest.getRole();
-        Set<Role> roles = new HashSet<>();
+        Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                .orElseThrow(() -> new APIException("Error: Role not found"));
 
-        if (strRoles == null) {
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
-            roles.add(userRole);
-        }
-        else {
-            strRoles.forEach(strRole -> {
-                switch(strRole) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
-                        roles.add(adminRole);
-                        break;
-                    case "seller":
-                        Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
-                        roles.add(sellerRole);
-                        break;
-                    default:
-                        Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
-                        roles.add(userRole);
-                }
-            });
-        }
-
-        user.setRoles(roles);
+        user.setRoles(new HashSet<>(Set.of(userRole)));
         userRepository.save(user);
     }
 
     @Override
     public String currentUserName(Authentication authentication) {
-        if (authentication != null) {
-            return authentication.getName();
-        }
-        else {
-            return "";
-        }
+        return authentication.getName();
     }
 
     @Override
     public UserInfoResponse getCurrentUserDetails(Authentication authentication) {
-        if (authentication == null) {
-            return null;
-        }
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .toList();
 
-        UserInfoResponse response = new UserInfoResponse(userDetails.getId(),
-                userDetails.getUsername(), roles, userDetails.getEmail(), jwtCookie.toString());
-
-        return response;
+        return new UserInfoResponse(userDetails.getId(),
+                userDetails.getUsername(), roles, userDetails.getEmail());
     }
 
-    @Override
-    public AuthenticationResult logoutUser() {
-        ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
-        return new AuthenticationResult(null, cookie);
-    }
+//    @Override
+//    public AuthenticationResult logoutUser() {
+//        ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
+//        return new AuthenticationResult(null, cookie);
+//    }
 
     @Override
-    public UserResponse getAllSellers(Integer pageNumber) {
-        Sort sortByAndOrder = Sort.by(AppConstants.SORT_USERS_BY).descending();
-        Pageable pageable = PageRequest.of(
-                pageNumber,
-                Integer.parseInt(AppConstants.PAGE_SIZE),
-                sortByAndOrder
-        );
+    public SellerResponse getAllSellers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
+
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
 
         Page<User> allUsers = userRepository.findByRoleName(AppRole.ROLE_SELLER, pageable);
-        List<UserDTO> userDTOS = allUsers.getContent()
+        List<SellerDTO> sellerDTOS = allUsers.getContent()
                 .stream()
-                .map(user -> modelMapper.map(user, UserDTO.class))
+                .map(user -> {
+                    SellerDTO sellerDTO = modelMapper.map(user, SellerDTO.class);
+                    List<AddressDTO> addressDTOS = user.getAddresses()
+                            .stream()
+                            .map(address -> modelMapper.map(address, AddressDTO.class))
+                            .toList();
+                    sellerDTO.setAddresses(addressDTOS);
+
+                    Set<String> roles = user.getRoles().stream()
+                                    .map(role -> role.getRoleName().name())
+                            .collect(Collectors.toSet());
+                    sellerDTO.setRoles(roles);
+                    return sellerDTO;
+                })
                 .toList();
 
-        UserResponse userResponse = new UserResponse();
-        userResponse.setContent(userDTOS);
-        userResponse.setPageNumber(allUsers.getNumber());
-        userResponse.setPageSize(allUsers.getSize());
-        userResponse.setTotalElements(allUsers.getTotalElements());
-        userResponse.setTotalPages(allUsers.getTotalPages());
-        userResponse.setLastPage(allUsers.isLast());
-        return userResponse;
+        SellerResponse sellerResponse = new SellerResponse();
+        sellerResponse.setContent(sellerDTOS);
+        sellerResponse.setPageNumber(allUsers.getNumber());
+        sellerResponse.setPageSize(allUsers.getSize());
+        sellerResponse.setTotalElements(allUsers.getTotalElements());
+        sellerResponse.setTotalPages(allUsers.getTotalPages());
+        sellerResponse.setLastPage(allUsers.isLast());
+        return sellerResponse;
+    }
+
+    @Override
+    public void promoteUser(Long userId, PromoteRoleRequestDTO requestDTO) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+
+        String normalizedRole = requestDTO.getRole().trim().toUpperCase();
+
+        AppRole appRole;
+
+        try {
+            appRole = AppRole.valueOf(normalizedRole);
+        } catch (IllegalArgumentException e) {
+            throw new APIException("Invalid role: " + requestDTO.getRole());
+        }
+
+        if (appRole == AppRole.ROLE_USER) {
+            throw new APIException("Users already have ROLE_USER");
+        }
+
+        Role role = roleRepository.findByRoleName(appRole)
+                .orElseThrow(() -> new APIException("Role not found"));
+
+        if (user.getRoles().contains(role)) {
+            throw new APIException("User already has role: " + appRole);
+        }
+
+        user.getRoles().add(role);
+
+        userRepository.save(user);
     }
 }

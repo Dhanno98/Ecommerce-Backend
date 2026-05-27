@@ -12,12 +12,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
 @RequiredArgsConstructor
 public class AuthTokenFilter extends OncePerRequestFilter {
 
@@ -48,9 +46,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 logger.debug("Roles from JWT: {}", userDetails.getAuthorities());
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication", e);
         }
         filterChain.doFilter(request, response);
+    }
+
+    private String parseJwt(HttpServletRequest request) {
+        return jwtUtils.getJwtFromHeader(request);
     }
 
 //    private String parseJwt(HttpServletRequest request) {
@@ -58,17 +60,4 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 //        logger.debug("AuthTokenFilter.java: {}", jwt);
 //        return jwt;
 //    }
-
-    private String parseJwt(HttpServletRequest request) {
-        String jwtFromCookie = jwtUtils.getJwtFromCookies(request);
-        if (jwtFromCookie != null) {
-            return jwtFromCookie;
-        }
-
-        String jwtFromHeader = jwtUtils.getJwtFromHeader(request);
-        if (jwtFromHeader != null) {
-            return jwtFromHeader;
-        }
-        return null;
-    }
 }
