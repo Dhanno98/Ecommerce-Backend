@@ -8,14 +8,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductDTO {
-    private Long productId;
+public class CreateProductRequest {
 
     @NotBlank
     @Size(min = 3, message = "Product name must contain at least 3 characters.")
     private String productName;
-
-    private String image;
 
     @NotBlank
     @Size(min = 6, message = "Product description must contain at least 6 characters.")
@@ -32,6 +29,4 @@ public class ProductDTO {
     @DecimalMin("0.0")
     @DecimalMax("100.0")
     private Double discount;
-
-    private Double specialPrice;
 }
