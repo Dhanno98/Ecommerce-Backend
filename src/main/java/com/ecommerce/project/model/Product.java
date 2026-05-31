@@ -31,6 +31,7 @@ public class Product {
 
     @NotBlank
     @Size(min = 3, message = "Product name must contain at least 3 characters.")
+    @Column(unique = true)
     private String productName;
 
     private String image;
