@@ -17,12 +17,6 @@ public class CartController {
 
     private final CartService cartService;
 
-    @PostMapping("/cart/create")
-    public ResponseEntity<String> createOrUpdateCart(@RequestBody List<CartItemDTO> cartItemDTOS) {
-        String response = cartService.createOrUpdateCartWithItems(cartItemDTOS);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
     @PostMapping("/carts/products/{productId}/quantity/{quantity}")
     public ResponseEntity<CartDTO> addProductToCart(@PathVariable Long productId,
                                                     @PathVariable Integer quantity) {
@@ -30,10 +24,10 @@ public class CartController {
         return new ResponseEntity<>(cartDTO, HttpStatus.CREATED);
     }
 
-    @GetMapping("/carts")
+    @GetMapping("/admin/carts")
     public ResponseEntity<List<CartDTO>> getCarts() {
         List<CartDTO> cartDTOS = cartService.getAllCarts();
-        return new ResponseEntity<>(cartDTOS, HttpStatus.FOUND);
+        return new ResponseEntity<>(cartDTOS, HttpStatus.OK);
     }
 
     @GetMapping("/carts/users/cart")
@@ -49,10 +43,15 @@ public class CartController {
         return new ResponseEntity<>(cartDTO, HttpStatus.OK);
     }
 
-    @DeleteMapping("/carts/{cartId}/product/{productId}")
-    public ResponseEntity<String> deleteProductFromCart(@PathVariable Long cartId,
-                                                        @PathVariable Long productId) {
-        String status = cartService.deleteProductFromCart(cartId, productId);
+    @DeleteMapping("/cart/products/{productId}")
+    public ResponseEntity<String> deleteProductFromCart(@PathVariable Long productId) {
+        String status = cartService.deleteProductFromCart(productId);
         return new ResponseEntity<>(status, HttpStatus.OK);
+    }
+
+    @PostMapping("/cart/create")
+    public ResponseEntity<String> createOrUpdateCart(@RequestBody List<CartItemDTO> cartItemDTOS) {
+        String response = cartService.createOrUpdateCartWithItems(cartItemDTOS);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }
