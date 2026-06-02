@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,5 +62,11 @@ public class MyGlobalExceptionHandler {
     public ResponseEntity<APIResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
         APIResponse response = new APIResponse("Duplicate entry found", false);
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<APIResponse> handleMaxSizeException(MaxUploadSizeExceededException e) {
+        APIResponse response = new APIResponse("Image size exceeds 5MB", false);
+        return new ResponseEntity<>(response, HttpStatus.CONTENT_TOO_LARGE);
     }
 }

@@ -10,6 +10,7 @@ import com.ecommerce.project.repositories.CartItemRepository;
 import com.ecommerce.project.repositories.CategoryRepository;
 import com.ecommerce.project.repositories.ProductRepository;
 import com.ecommerce.project.util.AuthUtil;
+import com.ecommerce.project.util.ImageUrlUtil;
 import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -47,11 +48,10 @@ public class ProductServiceImpl implements ProductService {
 
     private final static List<String> ALLOWED_CONTENT_TYPES = List.of("image/png", "image/jpeg", "image/webp");
 
+    private final ImageUrlUtil imageUrlUtil;
+
     @Value("${project.image}")
     private String path;
-
-    @Value("${image.base.url}")
-    private String imageBaseUrl;
 
     private final AuthUtil authUtil;
 
@@ -353,10 +353,6 @@ public class ProductServiceImpl implements ProductService {
         return mapToDTO(updatedProduct);
     }
 
-    private String constructImageUrl(String imageName) {
-        return imageBaseUrl.endsWith("/") ? imageBaseUrl + imageName : imageBaseUrl + "/" + imageName;
-    }
-
     private static @NonNull Specification<Product> getProductSpecification(String keyword, String category) {
         Specification<Product> spec = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
@@ -374,7 +370,7 @@ public class ProductServiceImpl implements ProductService {
 
     private ProductDTO mapToDTO(Product product) {
         ProductDTO productDTO = modelMapper.map(product, ProductDTO.class);
-        productDTO.setImage(constructImageUrl(product.getImage()));
+        productDTO.setImage(imageUrlUtil.constructImageUrl(product.getImage()));
         return productDTO;
     }
 
