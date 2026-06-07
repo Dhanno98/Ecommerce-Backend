@@ -1,17 +1,18 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.model.OrderStatus;
+import com.ecommerce.project.model.PaymentMethod;
 import com.ecommerce.project.payload.OrderDTO;
 import com.ecommerce.project.payload.OrderResponse;
-import jakarta.transaction.Transactional;
+import com.ecommerce.project.payload.SellerOrderResponse;
 
 public interface OrderService {
 
-    @Transactional
-    OrderDTO placeOrder(String emailId, Long addressId, String paymentMethod, String pgName, String pgPaymentId, String pgStatus, String pgResponseMessage);
+    OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod);
 
     OrderResponse getAllOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
-    OrderDTO updateOrder(Long orderId, String status);
+    OrderDTO updateOrder(Long orderId, OrderStatus status);
 
-    OrderResponse getAllSellerOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
+    SellerOrderResponse getAllSellerOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 }

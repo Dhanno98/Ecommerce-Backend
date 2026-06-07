@@ -1,8 +1,6 @@
 package com.ecommerce.project.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,16 +26,19 @@ public class Payment {
     @OneToOne(mappedBy = "payment")
     private Order order;
 
-    @NotBlank
-    @Size(min = 4, message = "Payment method must contain at least 4 characters.")
-    private String paymentMethod;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentMethod paymentMethod;
 
     private String pgPaymentId;
-    private String pgStatus;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus pgStatus;
+
     private String pgResponseMessage;
     private String pgName;
 
-    public Payment(String paymentMethod, String pgPaymentId, String pgStatus, String pgResponseMessage, String pgName) {
+    public Payment(PaymentMethod paymentMethod, String pgPaymentId, PaymentStatus pgStatus, String pgResponseMessage, String pgName) {
         this.paymentMethod = paymentMethod;
         this.pgPaymentId = pgPaymentId;
         this.pgStatus = pgStatus;

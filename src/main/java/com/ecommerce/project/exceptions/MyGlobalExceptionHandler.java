@@ -4,6 +4,7 @@ import com.ecommerce.project.payload.APIResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -68,5 +69,14 @@ public class MyGlobalExceptionHandler {
     public ResponseEntity<APIResponse> handleMaxSizeException(MaxUploadSizeExceededException e) {
         APIResponse response = new APIResponse("Image size exceeds 5MB", false);
         return new ResponseEntity<>(response, HttpStatus.CONTENT_TOO_LARGE);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<APIResponse> handleInvalidEnum(HttpMessageNotReadableException ex) {
+        APIResponse response = new APIResponse(
+                        "Invalid enum value supplied in request body",
+                        false);
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

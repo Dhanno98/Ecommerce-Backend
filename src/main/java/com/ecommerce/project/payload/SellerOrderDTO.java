@@ -1,9 +1,6 @@
 package com.ecommerce.project.payload;
 
 import com.ecommerce.project.model.OrderStatus;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,18 +12,10 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderDTO {
+public class SellerOrderDTO {
     private Long orderId;
-
-    @NotBlank
-    @Size(max = 50)
-    @Email
-    private String email;
-
     private List<OrderItemResponseDTO> orderItems = new ArrayList<>();
     private LocalDateTime orderDate;
-    private PaymentDTO payment;
-    private Double totalAmount;
+    private Double sellerAmount;
     private OrderStatus orderStatus;
-    private Long addressId;
 }
