@@ -1,14 +1,21 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.Address;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.payload.AddressDTO;
+import com.ecommerce.project.payload.AddressResponse;
 import com.ecommerce.project.repositories.AddressRepository;
-import com.ecommerce.project.repositories.UserRepository;
+import com.ecommerce.project.repositories.OrderRepository;
 import com.ecommerce.project.util.AuthUtil;
+import com.ecommerce.project.util.PaginationValidator;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +30,11 @@ public class AddressServiceImpl implements AddressService {
 
     private final AddressRepository addressRepository;
 
-    private final UserRepository userRepository;
+    private final PaginationValidator paginationValidator;
+
+    private final OrderRepository orderRepository;
+
+    private final static List<String> ALLOWED_SORT_FIELDS = List.of("addressId", "street", "buildingName", "city", "state", "country", "pincode");
 
     @Override
     public AddressDTO createAddress(AddressDTO addressDTO) {
@@ -39,12 +50,28 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public List<AddressDTO> getAllAddresses() {
-        List<Address> addresses = addressRepository.findAll();
+    public AddressResponse getAllAddresses(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
 
-        return addresses.stream()
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+        Page<Address> pageAddresses = addressRepository.findAll(pageable);
+        List<Address> addresses = pageAddresses.getContent();
+
+        List<AddressDTO> addressDTOS = addresses.stream()
                 .map(address -> modelMapper.map(address, AddressDTO.class))
                 .toList();
+
+        AddressResponse addressResponse = new AddressResponse();
+        addressResponse.setContent(addressDTOS);
+        addressResponse.setPageNumber(pageAddresses.getNumber());
+        addressResponse.setPageSize(pageAddresses.getSize());
+        addressResponse.setTotalElements(pageAddresses.getTotalElements());
+        addressResponse.setTotalPages(pageAddresses.getTotalPages());
+        addressResponse.setLastPage(pageAddresses.isLast());
+        return addressResponse;
     }
 
     @Override
@@ -57,9 +84,9 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     public List<AddressDTO> getUserAddresses() {
-        User user = authUtil.loggedInUser();
+        Long userId = authUtil.loggedInUserId();
 
-        List<Address> addresses = user.getAddresses();
+        List<Address> addresses = addressRepository.findByUserId(userId);
 
         return addresses.stream()
                 .map(address -> modelMapper.map(address, AddressDTO.class))
@@ -68,7 +95,8 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     public AddressDTO updateAddress(Long addressId, AddressDTO addressDTO) {
-        Address addressFromDB = addressRepository.findById(addressId)
+        Long userId = authUtil.loggedInUserId();
+        Address addressFromDB = addressRepository.findByAddressIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId));
 
         addressFromDB.setStreet(addressDTO.getStreet());
@@ -79,27 +107,18 @@ public class AddressServiceImpl implements AddressService {
         addressFromDB.setPincode(addressDTO.getPincode());
 
         Address updatedAddress = addressRepository.save(addressFromDB);
-
-        // Even though updating the Address entity removes it from the database, the reason we manually update it
-        // from the User's addresses list is to maintain consistency in Hibernate's in-memory state.
-        User user = addressFromDB.getUser();
-        user.getAddresses().removeIf(address -> address.getAddressId().equals(addressId));
-        user.getAddresses().add(updatedAddress);
-        userRepository.save(user);
-
         return modelMapper.map(updatedAddress, AddressDTO.class);
     }
 
     @Override
     public String deleteAddress(Long addressId) {
-        Address addressFromDB = addressRepository.findById(addressId)
+        Long userId = authUtil.loggedInUserId();
+        Address addressFromDB = addressRepository.findByAddressIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId));
 
-        // Even though deleting the Address entity removes it from the database, the reason we manually remove it
-        // from the User's addresses list is to maintain consistency in Hibernate's in-memory state.
-        User user = addressFromDB.getUser();
-        user.getAddresses().removeIf(address -> address.getAddressId().equals(addressId));
-        userRepository.save(user);
+        if (orderRepository.existsByAddressId(addressId)) {
+            throw new APIException("Cannot delete address because it is associated with existing orders");
+        }
 
         addressRepository.delete(addressFromDB);
         return "Address deleted successfully with addressId: " + addressId;

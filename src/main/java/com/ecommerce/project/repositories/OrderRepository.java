@@ -32,4 +32,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     })
     @Query("SELECT DISTINCT o FROM Order o JOIN o.orderItems oi JOIN oi.product p WHERE p.user.userId = :sellerId")
     Page<Order> findOrderBySellerId(@Param("sellerId") Long sellerId, Pageable pageable);
+
+    @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.address.addressId = ?1")
+    boolean existsByAddressId(Long addressId);
 }
