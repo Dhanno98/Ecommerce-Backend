@@ -1,6 +1,8 @@
 package com.ecommerce.project.controller;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.payload.AddressDTO;
+import com.ecommerce.project.payload.AddressResponse;
 import com.ecommerce.project.service.AddressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,13 +25,18 @@ public class AddressController {
         return new ResponseEntity<>(savedAddressDTO, HttpStatus.CREATED);
     }
 
-    @GetMapping("/addresses")
-    public ResponseEntity<List<AddressDTO>> getAllAddresses() {
-        List<AddressDTO> addressDTOS = addressService.getAllAddresses();
-        return new ResponseEntity<>(addressDTOS, HttpStatus.OK);
+    @GetMapping("/admin/addresses")
+    public ResponseEntity<AddressResponse> getAllAddresses(
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_ADDRESSES_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+    ) {
+        AddressResponse addressResponse = addressService.getAllAddresses(pageNumber, pageSize, sortBy, sortOrder);
+        return new ResponseEntity<>(addressResponse, HttpStatus.OK);
     }
 
-    @GetMapping("/addresses/{addressId}")
+    @GetMapping("/admin/addresses/{addressId}")
     public ResponseEntity<AddressDTO> getAddressById(@PathVariable Long addressId) {
         AddressDTO addressDTO = addressService.getAddressById(addressId);
         return new ResponseEntity<>(addressDTO, HttpStatus.OK);
@@ -43,7 +50,7 @@ public class AddressController {
 
     @PutMapping("/addresses/{addressId}")
     public ResponseEntity<AddressDTO> updateAddress(@PathVariable Long addressId,
-                                                        @RequestBody AddressDTO addressDTO) {
+                                                    @Valid @RequestBody AddressDTO addressDTO) {
 
         AddressDTO updatedAddressDTO = addressService.updateAddress(addressId, addressDTO);
         return new ResponseEntity<>(updatedAddressDTO, HttpStatus.OK);
