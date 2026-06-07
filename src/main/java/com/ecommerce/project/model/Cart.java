@@ -26,7 +26,7 @@ public class Cart {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_seq_generator")
     private Long cartId;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 

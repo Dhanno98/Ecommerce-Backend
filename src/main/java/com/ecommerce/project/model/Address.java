@@ -49,7 +49,7 @@ public class Address {
     @Size(min = 6, message = "Pincode must be at least 6 characters")
     private String pincode;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

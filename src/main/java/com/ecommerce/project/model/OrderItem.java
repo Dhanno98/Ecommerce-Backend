@@ -24,11 +24,11 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "order_item_seq_generator")
     private Long orderItemId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
