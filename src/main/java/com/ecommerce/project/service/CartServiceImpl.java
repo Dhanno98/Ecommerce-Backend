@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
@@ -66,7 +67,7 @@ public class CartServiceImpl implements CartService {
         newCartItem.setDiscount(product.getDiscount());
         newCartItem.setProductPrice(product.getSpecialPrice());
 
-        cart.setTotalPrice(cart.getTotalPrice() + (product.getSpecialPrice() * quantity));
+        cart.setTotalPrice(cart.getTotalPrice().add((product.getSpecialPrice().multiply(BigDecimal.valueOf(quantity)))));
         cart.getCartItems().add(newCartItem);
         cartRepository.save(cart);
 
@@ -81,11 +82,9 @@ public class CartServiceImpl implements CartService {
             throw new APIException("No cart exist");
         }
 
-        List<CartDTO> cartDTOS = carts.stream()
+        return carts.stream()
                 .map(this::mapToCartDTO)
                 .toList();
-
-        return cartDTOS;
     }
 
     @Override
@@ -143,7 +142,7 @@ public class CartServiceImpl implements CartService {
             cartItem.setQuantity(newQuantity);
             cartItem.setProductPrice(product.getSpecialPrice());
             cartItem.setDiscount(product.getDiscount());
-            cart.setTotalPrice(cart.getTotalPrice() + (cartItem.getProductPrice() * op));
+            cart.setTotalPrice(cart.getTotalPrice().add((cartItem.getProductPrice().multiply(BigDecimal.valueOf(op)))));
             cartRepository.save(cart);
         }
 
@@ -166,7 +165,8 @@ public class CartServiceImpl implements CartService {
             throw new ResourceNotFoundException("CartItem", "productId", productId);
         }
 
-        cart.setTotalPrice(cart.getTotalPrice() - (cartItem.getProductPrice() * cartItem.getQuantity()));
+        cart.setTotalPrice(cart.getTotalPrice()
+                .subtract(cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()))));
         cart.getCartItems().remove(cartItem);
 
         return "Product " + cartItem.getProduct().getProductName() + " removed from the cart!";
@@ -182,7 +182,7 @@ public class CartServiceImpl implements CartService {
         Cart existingCart = cartRepository.findCartByEmail(emailId);
         if (existingCart == null) {
             existingCart = new Cart();
-            existingCart.setTotalPrice(0.00);
+            existingCart.setTotalPrice(BigDecimal.ZERO);
             existingCart.setUser(authUtil.loggedInUser());
             existingCart = cartRepository.save(existingCart);
         } else {
@@ -190,7 +190,7 @@ public class CartServiceImpl implements CartService {
             cartItemRepository.deleteAllByCartId(existingCart.getCartId());
         }
 
-        double totalPrice = 0.00;
+        BigDecimal totalPrice = BigDecimal.ZERO;
 
         // Process each item in the request to add to the cart
         for (CartItemDTO cartItemDTO : cartItemDTOS) {
@@ -203,7 +203,7 @@ public class CartServiceImpl implements CartService {
 
             // Directly update product stock and total price
             // product.setQuantity(product.getQuantity() - quantity);
-            totalPrice += product.getSpecialPrice() * quantity;
+            totalPrice = totalPrice.add(product.getSpecialPrice().multiply(BigDecimal.valueOf(quantity)));
 
             // Create and save cart item
             CartItem cartItem = new CartItem();
@@ -228,10 +228,9 @@ public class CartServiceImpl implements CartService {
         }
 
         Cart cart = new Cart();
-        cart.setTotalPrice(0.0);
+        cart.setTotalPrice(BigDecimal.ZERO);
         cart.setUser(authUtil.loggedInUser());
-        Cart newCart = cartRepository.save(cart);
-        return newCart;
+        return cartRepository.save(cart);
     }
 
     private CartItemResponseDTO mapToCartItemResponseDTO(CartItem item) {

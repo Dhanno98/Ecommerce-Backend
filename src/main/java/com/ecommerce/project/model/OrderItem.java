@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "order_items")
 @Getter
@@ -36,9 +38,9 @@ public class OrderItem {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Double discount;
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal discount;
 
-    @Column(nullable = false)
-    private Double orderedProductPrice;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal orderedProductPrice;
 }

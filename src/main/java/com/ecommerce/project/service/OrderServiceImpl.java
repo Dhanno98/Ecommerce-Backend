@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -117,7 +118,7 @@ public class OrderServiceImpl implements OrderService {
             productRepository.save(product);
         }
         cartItems.clear();
-        cart.setTotalPrice(0.0);
+        cart.setTotalPrice(BigDecimal.ZERO);
         cartRepository.save(cart);
 
         // Send back order summary
@@ -209,10 +210,11 @@ public class OrderServiceImpl implements OrderService {
                                             item.getProduct()
                                                     .getUser().getUserId().equals(seller.getUserId())).toList();
 
-                    Double sellerTotal = filteredItems.stream()
-                            .mapToDouble(item ->
-                                    item.getOrderedProductPrice() * item.getQuantity())
-                            .sum();
+                    BigDecimal sellerTotal = filteredItems.stream()
+                            .map(item ->
+                                    item.getOrderedProductPrice()
+                                            .multiply(BigDecimal.valueOf(item.getQuantity())))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     List<OrderItemResponseDTO> responseDTOS = filteredItems.stream().map(this::mapToOrderItemResponseDTO).toList();
 

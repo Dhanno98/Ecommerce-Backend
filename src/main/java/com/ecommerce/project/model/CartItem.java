@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Entity
 @Getter
 @Setter
@@ -40,9 +42,9 @@ public class CartItem {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Double discount;
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal discount;
 
-    @Column(nullable = false)
-    private Double productPrice;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal productPrice;
 }
