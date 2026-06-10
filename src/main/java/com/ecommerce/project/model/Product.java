@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,9 +44,14 @@ public class Product {
     @Min(value = 0, message = "Product quantity cannot be negative")
     private Integer quantity;
 
-    private Double price;
-    private Double discount;
-    private Double specialPrice;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal price;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal discount;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal specialPrice;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

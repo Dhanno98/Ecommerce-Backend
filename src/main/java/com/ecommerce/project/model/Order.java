@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,8 @@ public class Order {
     @JoinColumn(name = "payment_id")
     private Payment payment;
 
-    private Double totalAmount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;

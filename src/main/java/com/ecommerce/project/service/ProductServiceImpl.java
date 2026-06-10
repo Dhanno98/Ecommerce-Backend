@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -68,7 +70,7 @@ public class ProductServiceImpl implements ProductService {
         product.setImage("default.png");
         product.setCategory(category);
         product.setUser(authUtil.loggedInUser());
-        Double specialPrice = calculateSpecialPrice(product.getPrice(), product.getDiscount());
+        BigDecimal specialPrice = calculateSpecialPrice(product.getPrice(), product.getDiscount());
         product.setSpecialPrice(specialPrice);
 
         Product savedProduct = productRepository.save(product);
@@ -193,21 +195,19 @@ public class ProductServiceImpl implements ProductService {
         productFromDB.setQuantity(productRequest.getQuantity());
         productFromDB.setPrice(productRequest.getPrice());
         productFromDB.setDiscount(productRequest.getDiscount());
-        Double specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
+        BigDecimal specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
         productFromDB.setSpecialPrice(specialPrice);
 
         List<CartItem> cartItems = cartItemRepository.findAllByProductId(productFromDB.getProductId());
         for (CartItem cartItem : cartItems) {
             Cart cart = cartItem.getCart();
-            double oldPrice = cartItem.getProductPrice() * cartItem.getQuantity();
-
-            double updatedPrice = specialPrice;
+            BigDecimal oldPrice = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
             cartItem.setDiscount(productFromDB.getDiscount());
-            cartItem.setProductPrice(updatedPrice);
+            cartItem.setProductPrice(specialPrice);
 
-            double newPrice = updatedPrice * cartItem.getQuantity();
-            cart.setTotalPrice(cart.getTotalPrice() - oldPrice + newPrice);
+            BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
         }
         return mapToDTO(productFromDB);
     }
@@ -234,21 +234,19 @@ public class ProductServiceImpl implements ProductService {
         productFromDB.setQuantity(productRequest.getQuantity());
         productFromDB.setPrice(productRequest.getPrice());
         productFromDB.setDiscount(productRequest.getDiscount());
-        Double specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
+        BigDecimal specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
         productFromDB.setSpecialPrice(specialPrice);
 
         List<CartItem> cartItems = cartItemRepository.findAllByProductId(productFromDB.getProductId());
         for (CartItem cartItem : cartItems) {
             Cart cart = cartItem.getCart();
-            double oldPrice = cartItem.getProductPrice() * cartItem.getQuantity();
-
-            double updatedPrice = specialPrice;
+            BigDecimal oldPrice = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
             cartItem.setDiscount(productFromDB.getDiscount());
-            cartItem.setProductPrice(updatedPrice);
+            cartItem.setProductPrice(specialPrice);
 
-            double newPrice = updatedPrice * cartItem.getQuantity();
-            cart.setTotalPrice(cart.getTotalPrice() - oldPrice + newPrice);
+            BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
         }
         return mapToDTO(productFromDB);
     }
@@ -262,8 +260,8 @@ public class ProductServiceImpl implements ProductService {
         List<CartItem> cartItems = cartItemRepository.findAllByProductId(productId);
         for (CartItem cartItem : cartItems) {
             Cart cart = cartItem.getCart();
-            double deduction = cartItem.getProductPrice() * cartItem.getQuantity();
-            cart.setTotalPrice(cart.getTotalPrice() - deduction);
+            BigDecimal deduction = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(deduction));
         }
         cartItemRepository.deleteAll(cartItems);
         productRepository.delete(productFromDB);
@@ -285,8 +283,8 @@ public class ProductServiceImpl implements ProductService {
         List<CartItem> cartItems = cartItemRepository.findAllByProductId(productId);
         for (CartItem cartItem : cartItems) {
             Cart cart = cartItem.getCart();
-            double deduction = cartItem.getProductPrice() * cartItem.getQuantity();
-            cart.setTotalPrice(cart.getTotalPrice() - deduction);
+            BigDecimal deduction = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(deduction));
         }
         cartItemRepository.deleteAll(cartItems);
         productRepository.delete(productFromDB);
@@ -374,8 +372,10 @@ public class ProductServiceImpl implements ProductService {
         return productDTO;
     }
 
-    private double calculateSpecialPrice(double price, double discount) {
-        return price - ((discount * 0.01) * price);
+    private BigDecimal calculateSpecialPrice(BigDecimal price, BigDecimal discount) {
+        BigDecimal discountPercentage = discount.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        BigDecimal discountAmount = price.multiply(discountPercentage);
+        return price.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
     }
 
     private ProductResponse buildProductResponse(Page<Product> productPage, List<ProductDTO> productDTOS) {

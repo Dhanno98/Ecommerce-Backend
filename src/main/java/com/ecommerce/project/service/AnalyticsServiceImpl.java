@@ -6,6 +6,8 @@ import com.ecommerce.project.repositories.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class AnalyticsServiceImpl implements AnalyticsService {
@@ -20,7 +22,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         Long productCount = productRepository.count();
         Long totalOrders = orderRepository.count();
-        Double totalRevenue = orderRepository.getTotalRevenue();
+        BigDecimal totalRevenue = orderRepository.getTotalRevenue();
 
         analyticsResponse.setProductCount(String.valueOf(productCount));
         analyticsResponse.setTotalOrders(String.valueOf(totalOrders));
