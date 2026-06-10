@@ -47,10 +47,7 @@ public class CartServiceImpl implements CartService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(
-                cart.getCartId(),
-                productId
-        );
+        CartItem cartItem = cartItemRepository.findCartItemByProductIdAndCartId(cart.getCartId(), productId);
         if (cartItem != null) {
             throw new APIException("Product " + product.getProductName() + " already exists in the cart");
         }

@@ -201,7 +201,7 @@ public class ProductServiceImpl implements ProductService {
             Cart cart = cartItem.getCart();
             double oldPrice = cartItem.getProductPrice() * cartItem.getQuantity();
 
-            double updatedPrice = productFromDB.getSpecialPrice();
+            double updatedPrice = specialPrice;
 
             cartItem.setDiscount(productFromDB.getDiscount());
             cartItem.setProductPrice(updatedPrice);
@@ -242,7 +242,7 @@ public class ProductServiceImpl implements ProductService {
             Cart cart = cartItem.getCart();
             double oldPrice = cartItem.getProductPrice() * cartItem.getQuantity();
 
-            double updatedPrice = productFromDB.getSpecialPrice();
+            double updatedPrice = specialPrice;
 
             cartItem.setDiscount(productFromDB.getDiscount());
             cartItem.setProductPrice(updatedPrice);

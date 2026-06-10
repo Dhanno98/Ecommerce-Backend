@@ -11,7 +11,6 @@ public interface CategoryService {
 
     CategoryDTO deleteCategory(Long categoryId);
 
-    @Transactional
     CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId);
 
     CategoryResponse getAllCategoriesForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
