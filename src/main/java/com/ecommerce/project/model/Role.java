@@ -31,4 +31,20 @@ public class Role {
     public Role(AppRole roleName) {
         this.roleName = roleName;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Role role)) {
+            return false;
+        }
+        return roleName == role.roleName;
+    }
+
+    @Override
+    public int hashCode() {
+        return roleName.hashCode();
+    }
 }

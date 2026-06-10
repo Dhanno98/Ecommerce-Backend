@@ -19,4 +19,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
 
     @Query("SELECT a FROM Address a WHERE a.addressId = ?1 AND a.user.userId = ?2")
     Optional<Address> findByAddressIdAndUserId(Long addressId, Long userId);
+
+    @Query("SELECT a FROM Address a WHERE a.user.userId IN :userIds")
+    List<Address> findByUserIds(List<Long> userIds);
 }

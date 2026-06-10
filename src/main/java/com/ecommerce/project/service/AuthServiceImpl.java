@@ -2,6 +2,7 @@ package com.ecommerce.project.service;
 
 import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.exceptions.ResourceNotFoundException;
+import com.ecommerce.project.model.Address;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
@@ -9,6 +10,7 @@ import com.ecommerce.project.payload.AddressDTO;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerDTO;
 import com.ecommerce.project.payload.SellerResponse;
+import com.ecommerce.project.repositories.AddressRepository;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
 import com.ecommerce.project.security.jwt.JwtUtils;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,6 +54,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
 
     private final RoleRepository roleRepository;
+
+    private final AddressRepository addressRepository;
 
     private final ModelMapper modelMapper;
 
@@ -141,32 +146,46 @@ public class AuthServiceImpl implements AuthService {
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
 
-        Page<User> allUsers = userRepository.findByRoleName(AppRole.ROLE_SELLER, pageable);
-        List<SellerDTO> sellerDTOS = allUsers.getContent()
+        Page<User> sellers = userRepository.findByRoleName(AppRole.ROLE_SELLER, pageable);
+        List<Long> sellerIds = sellers.getContent()
+                .stream()
+                .map(User::getUserId)
+                .toList();
+
+        List<Address> addresses = addressRepository.findByUserIds(sellerIds);
+        Map<Long, List<AddressDTO>> addressesByUserId = addresses.stream()
+                .collect(Collectors.groupingBy(address -> address.getUser().getUserId(), Collectors.mapping(
+                        address -> modelMapper.map(address, AddressDTO.class), Collectors.toList())
+        ));
+
+        List<User> userWithRoles = userRepository.findUsersWithRoles(sellerIds);
+        Map<Long, Set<String>> rolesByUserId = userWithRoles.stream()
+                .collect(Collectors.toMap(User::getUserId, user -> user.getRoles().stream()
+                        .map(role -> role.getRoleName().name())
+                        .collect(Collectors.toSet())
+        ));
+
+        List<SellerDTO> sellerDTOS = sellers.getContent()
                 .stream()
                 .map(user -> {
-                    SellerDTO sellerDTO = modelMapper.map(user, SellerDTO.class);
-                    List<AddressDTO> addressDTOS = user.getAddresses()
-                            .stream()
-                            .map(address -> modelMapper.map(address, AddressDTO.class))
-                            .toList();
-                    sellerDTO.setAddresses(addressDTOS);
+                    SellerDTO sellerDTO = new SellerDTO();
+                    sellerDTO.setUserId(user.getUserId());
+                    sellerDTO.setUsername(user.getUserName());
+                    sellerDTO.setEmail(user.getEmail());
 
-                    Set<String> roles = user.getRoles().stream()
-                                    .map(role -> role.getRoleName().name())
-                            .collect(Collectors.toSet());
-                    sellerDTO.setRoles(roles);
+                    sellerDTO.setAddresses(addressesByUserId.getOrDefault(user.getUserId(), List.of()));
+                    sellerDTO.setRoles(rolesByUserId.getOrDefault(user.getUserId(), Set.of()));
                     return sellerDTO;
                 })
                 .toList();
 
         SellerResponse sellerResponse = new SellerResponse();
         sellerResponse.setContent(sellerDTOS);
-        sellerResponse.setPageNumber(allUsers.getNumber());
-        sellerResponse.setPageSize(allUsers.getSize());
-        sellerResponse.setTotalElements(allUsers.getTotalElements());
-        sellerResponse.setTotalPages(allUsers.getTotalPages());
-        sellerResponse.setLastPage(allUsers.isLast());
+        sellerResponse.setPageNumber(sellers.getNumber());
+        sellerResponse.setPageSize(sellers.getSize());
+        sellerResponse.setTotalElements(sellers.getTotalElements());
+        sellerResponse.setTotalPages(sellers.getTotalPages());
+        sellerResponse.setLastPage(sellers.isLast());
         return sellerResponse;
     }
 
