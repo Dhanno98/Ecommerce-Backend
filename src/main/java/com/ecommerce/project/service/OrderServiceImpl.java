@@ -52,13 +52,13 @@ public class OrderServiceImpl implements OrderService {
 
     private final AddressRepository addressRepository;
 
-    private final PaymentRepository paymentRepository;
-
     private final OrderRepository orderRepository;
 
     private final OrderItemRepository orderItemRepository;
 
     private final ProductRepository productRepository;
+
+    private final PaymentService paymentService;
 
     private final ModelMapper modelMapper;
 
@@ -109,10 +109,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus(OrderStatus.CREATED);
         order.setAddress(address);
 
-        Payment payment = new Payment(paymentMethod, "MOCK", PaymentStatus.SUCCESS, "Payment Successful", "Stripe");
-        payment.setOrder(order);
-        payment = paymentRepository.save(payment);
-
+        Payment payment = paymentService.createSuccessfulPayment(order, paymentMethod);
         order.setPayment(payment);
         Order savedOrder = orderRepository.save(order);
 
