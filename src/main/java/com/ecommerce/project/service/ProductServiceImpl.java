@@ -18,6 +18,7 @@ import com.ecommerce.project.util.ImageUrlUtil;
 import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
@@ -63,10 +65,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO addProduct(Long categoryId, CreateProductRequest productRequest) {
+        log.info("Product creation requested. productName={}, categoryId={}, sellerId={}",
+                productRequest.getProductName(), categoryId, authUtil.loggedInUserId());
+
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
         if (productRepository.existsByProductNameIgnoreCase(productRequest.getProductName())) {
+            log.warn("Product creation failed. Product already exists. productName={}", productRequest.getProductName());
             throw new APIException("Product with name: " + productRequest.getProductName() + " already exists.");
         }
 
@@ -78,6 +84,9 @@ public class ProductServiceImpl implements ProductService {
         product.setSpecialPrice(specialPrice);
 
         Product savedProduct = productRepository.save(product);
+        log.info("Product created successfully. productId={}, productName={}",
+                savedProduct.getProductId(), savedProduct.getProductName());
+
         return mapToDTO(savedProduct);
     }
 
@@ -186,11 +195,13 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     @Override
     public ProductDTO updateProduct(CreateProductRequest productRequest, Long productId) {
+        log.info("Product update requested. productId={}", productId);
+
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        if (productRepository.existsByProductNameIgnoreCaseAndProductIdNot(
-                productRequest.getProductName(), productId)) {
+        if (productRepository.existsByProductNameIgnoreCaseAndProductIdNot(productRequest.getProductName(), productId)) {
+            log.warn("Product update failed. Duplicate product name={}", productRequest.getProductName());
             throw new APIException("Product with name: " + productRequest.getProductName() + " already exists.");
         }
 
@@ -213,6 +224,10 @@ public class ProductServiceImpl implements ProductService {
             BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
         }
+
+        log.info("Product updated successfully. productId={}, productName={}",
+                productFromDB.getProductId(), productFromDB.getProductName());
+
         return mapToDTO(productFromDB);
     }
 
@@ -221,15 +236,20 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO updateProductSeller(CreateProductRequest productRequest, Long productId) {
         User seller = authUtil.loggedInUser();
 
+        log.info("Seller product update requested. sellerId={}, productId={}", seller.getUserId(), productId);
+
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
         if (!productFromDB.getUser().getUserId().equals(seller.getUserId())) {
+            log.warn("Seller attempted to update product not owned by them. sellerId={}, productId={}",
+                    seller.getUserId(), productId);
             throw new APIException("Product cannot be updated as it does not belong to this seller!");
         }
 
         if (productRepository.existsByProductNameIgnoreCaseAndProductIdNot(
                 productRequest.getProductName(), productId)) {
+            log.warn("Seller product update failed. Duplicate product name={}", productRequest.getProductName());
             throw new APIException("Product with name: " + productRequest.getProductName() + " already exists.");
         }
 
@@ -252,12 +272,16 @@ public class ProductServiceImpl implements ProductService {
             BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
         }
+
+        log.info("Seller product updated successfully. sellerId={}, productId={}", seller.getUserId(), productId);
         return mapToDTO(productFromDB);
     }
 
     @Transactional
     @Override
     public ProductDTO deleteProduct(Long productId) {
+        log.info("Product deletion requested. productId={}", productId);
+
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
@@ -269,18 +293,26 @@ public class ProductServiceImpl implements ProductService {
         }
         cartItemRepository.deleteAll(cartItems);
         productRepository.delete(productFromDB);
+
+        log.info("Product deleted successfully. productId={}, productName={}",
+                productFromDB.getProductId(), productFromDB.getProductName());
+
         return mapToDTO(productFromDB);
     }
 
     @Transactional
     @Override
     public ProductDTO deleteProductSeller(Long productId) {
+        User seller = authUtil.loggedInUser();
+
+        log.info("Seller product deletion requested. sellerId={}, productId={}", seller.getUserId(), productId);
+
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        User seller = authUtil.loggedInUser();
-
         if (!productFromDB.getUser().getUserId().equals(seller.getUserId())) {
+            log.warn("Seller attempted to delete product not owned by them. sellerId={}, productId={}",
+                    seller.getUserId(), productId);
             throw new APIException("Product cannot be deleted as it does not belong to this seller!");
         }
 
@@ -292,22 +324,29 @@ public class ProductServiceImpl implements ProductService {
         }
         cartItemRepository.deleteAll(cartItems);
         productRepository.delete(productFromDB);
+
+        log.info("Seller product deleted successfully. sellerId={}, productId={}", seller.getUserId(), productId);
         return mapToDTO(productFromDB);
     }
 
     @Transactional
     @Override
     public ProductDTO updateProductImage(Long productId, MultipartFile image) throws IOException {
+        log.info("Product image update requested. productId={}", productId);
+
         if (image.isEmpty()) {
+            log.warn("Image upload failed. Empty image. productId={}", productId);
             throw new APIException("Image cannot be empty");
         }
 
         String contentType = image.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(image.getContentType())) {
+            log.warn("Image upload failed. Invalid content type={}. productId={}", contentType, productId);
             throw new APIException("Invalid image type. Valid image types: PNG, JPEG, WEBP");
         }
 
         if (image.getSize() > 5 * 1024 * 1024) {
+            log.warn("Image upload failed. File too large. size={}, productId={}", image.getSize(), productId);
             throw new APIException("Image size exceeds 5MB");
         }
 
@@ -319,31 +358,43 @@ public class ProductServiceImpl implements ProductService {
         productFromDB.setImage(fileName);
 
         Product updatedProduct = productRepository.save(productFromDB);
+
+        log.info("Product image updated successfully. productId={}, image={}",
+                updatedProduct.getProductId(), updatedProduct.getImage());
         return mapToDTO(updatedProduct);
     }
 
     @Transactional
     @Override
     public ProductDTO updateProductImageSeller(Long productId, MultipartFile image) throws IOException {
+        User seller = authUtil.loggedInUser();
+
+        log.info("Seller image update requested. sellerId={}, productId={}", seller.getUserId(), productId);
+
         if (image.isEmpty()) {
+            log.warn("Seller image upload failed. Empty image. sellerId={}, productId={}", seller.getUserId(), productId);
             throw new APIException("Image cannot be empty");
         }
 
         String contentType = image.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(image.getContentType())) {
+            log.warn("Seller image upload failed. Invalid content type={}. productId={}, sellerId={}",
+                    contentType, productId, seller.getUserId());
             throw new APIException("Invalid image type. Valid image types: PNG, JPEG, WEBP");
         }
 
         if (image.getSize() > 5 * 1024 * 1024) {
+            log.warn("Image upload failed. File too large. size={}, productId={}, sellerId={}",
+                    image.getSize(), productId, seller.getUserId());
             throw new APIException("Image size exceeds 5MB");
         }
 
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        User seller = authUtil.loggedInUser();
-
         if (!productFromDB.getUser().getUserId().equals(seller.getUserId())) {
+            log.warn("Seller attempted to update image of product not owned by them. sellerId={}, productId={}",
+                    seller.getUserId(), productId);
             throw new APIException("Product image cannot be updated as it does not belong to this seller!");
         }
 
@@ -352,6 +403,9 @@ public class ProductServiceImpl implements ProductService {
         productFromDB.setImage(fileName);
 
         Product updatedProduct = productRepository.save(productFromDB);
+
+        log.info("Seller product image updated successfully. sellerId={}, productId={}, image={}",
+                seller.getUserId(), productId, updatedProduct.getImage());
         return mapToDTO(updatedProduct);
     }
 

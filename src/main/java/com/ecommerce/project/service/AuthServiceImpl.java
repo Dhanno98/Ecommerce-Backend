@@ -21,6 +21,7 @@ import com.ecommerce.project.security.services.UserDetailsImpl;
 import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -65,12 +67,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserInfoResponse login(LoginRequest loginRequest) throws AuthenticationException {
+
+        log.info("Login attempt for username={}", loginRequest.getUsername());
+
         Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUsername(),
                             loginRequest.getPassword()
                     )
-            );
+        );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -83,6 +88,8 @@ public class AuthServiceImpl implements AuthService {
                 .map(item -> item.getAuthority())
                 .toList();
 
+        log.info("Login successful. userId={}, username={}", userDetails.getId(), userDetails.getUsername());
+
         return new UserInfoResponse(userDetails.getId(),
                 userDetails.getUsername(), roles, userDetails.getEmail(), jwtToken);
     }
@@ -92,11 +99,15 @@ public class AuthServiceImpl implements AuthService {
         String normalizedUsername = signupRequest.getUsername().trim().toLowerCase();
         String normalizedEmail = signupRequest.getEmail().trim().toLowerCase();
 
+        log.info("Registration attempt. username={}, email={}", normalizedUsername, normalizedEmail);
+
         if (userRepository.existsByUserName(normalizedUsername)) {
+            log.warn("Registration failed. Username already exists: {}", normalizedUsername);
             throw new APIException("Error: Username is already taken!");
         }
 
         if (userRepository.existsByEmail(normalizedEmail)) {
+            log.warn("Registration failed. Email already exists: {}", normalizedEmail);
             throw new APIException("Error: Email is already in use!");
         }
 
@@ -111,6 +122,7 @@ public class AuthServiceImpl implements AuthService {
 
         user.setRoles(new HashSet<>(Set.of(userRole)));
         userRepository.save(user);
+        log.info("User registered successfully. userId={}, username={}", user.getUserId(), user.getUserName());
     }
 
     @Override
@@ -140,6 +152,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public SellerResponse getAllSellers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
+
+        log.info("Fetching sellers. page={}, size={}, sortBy={}, sortOrder={}", pageNumber, pageSize, sortBy, sortOrder);
 
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
@@ -186,11 +200,15 @@ public class AuthServiceImpl implements AuthService {
         sellerResponse.setTotalElements(sellers.getTotalElements());
         sellerResponse.setTotalPages(sellers.getTotalPages());
         sellerResponse.setLastPage(sellers.isLast());
+
+        log.info("Fetched {} sellers", sellerDTOS.size());
         return sellerResponse;
     }
 
     @Override
     public void promoteUser(Long userId, PromoteRoleRequestDTO requestDTO) {
+
+        log.info("Role promotion requested. userId={}, targetRole={}", userId, requestDTO.getRole());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
@@ -202,10 +220,12 @@ public class AuthServiceImpl implements AuthService {
         try {
             appRole = AppRole.valueOf(normalizedRole);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid role supplied for promotion. userId={}, role={}", userId, requestDTO.getRole());
             throw new APIException("Invalid role: " + requestDTO.getRole());
         }
 
         if (appRole == AppRole.ROLE_USER) {
+            log.warn("Promotion skipped. userId={} already has role={}", userId, appRole);
             throw new APIException("Users already have ROLE_USER");
         }
 
@@ -213,11 +233,13 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new APIException("Role not found"));
 
         if (user.getRoles().contains(role)) {
+            log.warn("Promotion skipped. userId={} already has role={}", userId, appRole);
             throw new APIException("User already has role: " + appRole);
         }
 
         user.getRoles().add(role);
 
         userRepository.save(user);
+        log.info("Role promoted successfully. userId={}, role={}", userId, appRole);
     }
 }

@@ -1,6 +1,7 @@
 package com.ecommerce.project.security.handlers;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -11,10 +12,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class SecurityExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException e, HttpServletRequest request) {
+        log.warn("Authentication failed. path={}, message={}", request.getServletPath(), e.getMessage());
+
         Map<String, Object> body = new HashMap<>();
         body.put("path", request.getServletPath());
         body.put("error", "Unauthorized");

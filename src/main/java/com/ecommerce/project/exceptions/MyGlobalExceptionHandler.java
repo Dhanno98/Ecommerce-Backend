@@ -1,6 +1,7 @@
 package com.ecommerce.project.exceptions;
 
 import com.ecommerce.project.payload.APIResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class MyGlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -54,6 +56,9 @@ public class MyGlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<APIResponse> myMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        log.warn("Invalid request parameter. parameter={}, value={}, expectedType={}",
+                e.getName(), e.getValue(), e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown");
+
         String message = "Invalid value '" + e.getValue() + "' for parameter '" + e.getName() + "'";
         APIResponse apiResponse = new APIResponse(message, false);
         return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
@@ -61,18 +66,21 @@ public class MyGlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<APIResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("Database constraint violation occurred", e);
         APIResponse response = new APIResponse("Duplicate entry found", false);
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<APIResponse> handleMaxSizeException(MaxUploadSizeExceededException e) {
+        log.warn("File upload rejected because size exceeded configured limit");
         APIResponse response = new APIResponse("Image size exceeds 5MB", false);
         return new ResponseEntity<>(response, HttpStatus.CONTENT_TOO_LARGE);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<APIResponse> handleInvalidEnum(HttpMessageNotReadableException ex) {
+        log.warn("Invalid request body received", ex);
         APIResponse response = new APIResponse(
                         "Invalid enum value supplied in request body",
                         false);

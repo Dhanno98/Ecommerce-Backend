@@ -1,11 +1,9 @@
 package com.ecommerce.project.security.handlers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -16,16 +14,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(CustomAccessDeniedHandler.class);
 
     @Override
     public void handle(HttpServletRequest request,
                        HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException, ServletException {
+                       AccessDeniedException accessDeniedException) throws IOException {
 
-        logger.warn("Access denied: {}", accessDeniedException.getMessage());
+        log.warn("Access denied. path={}, message={}", request.getServletPath(), accessDeniedException.getMessage());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
