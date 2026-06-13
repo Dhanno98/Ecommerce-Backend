@@ -10,6 +10,7 @@ import com.ecommerce.project.repositories.ProductRepository;
 import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
@@ -63,26 +65,38 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         String normalizedCategoryName = categoryDTO.getCategoryName().trim().toLowerCase();
 
+        log.info("Category creation requested. categoryName={}", normalizedCategoryName);
+
         if (categoryRepository.existsByCategoryName(normalizedCategoryName)) {
+            log.warn("Category creation failed. Category already exists: {}", normalizedCategoryName);
             throw new APIException("Category with the name: '" + normalizedCategoryName + "' already exists !!!");
         }
 
         categoryDTO.setCategoryName(normalizedCategoryName);
         Category category = modelMapper.map(categoryDTO, Category.class);
         Category savedCategory = categoryRepository.save(category);
+
+        log.info("Category created successfully. categoryId={}, categoryName={}",
+                savedCategory.getCategoryId(), savedCategory.getCategoryName());
         return modelMapper.map(savedCategory, CategoryDTO.class);
     }
 
     @Override
     public CategoryDTO deleteCategory(Long categoryId) {
+        log.info("Category deletion requested. categoryId={}", categoryId);
+
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
         if (productRepository.existsByCategory(category)) {
+            log.warn("Category deletion blocked. categoryId={} contains products", categoryId);
             throw new APIException("Cannot delete category with existing products");
         }
 
         categoryRepository.delete(category);
+
+        log.info("Category deleted successfully. categoryId={}, categoryName={}",
+                category.getCategoryId(), category.getCategoryName());
         return modelMapper.map(category, CategoryDTO.class);
     }
 
@@ -91,13 +105,19 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
         String categoryName = categoryDTO.getCategoryName().trim().toLowerCase();
 
+        log.info("Category update requested. categoryId={}, newName={}", categoryId, categoryName);
+
         if (categoryRepository.existsByCategoryNameAndCategoryIdNot(categoryName, categoryId)) {
+            log.warn("Category update failed. Name already exists: {}", categoryName);
             throw new APIException("Category with the name: '" + categoryName + "' already exists !!!");
         }
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
         category.setCategoryName(categoryName);
+
+        log.info("Category updated successfully. categoryId={}, categoryName={}",
+                category.getCategoryId(), category.getCategoryName());
         return modelMapper.map(category, CategoryDTO.class);
     }
 

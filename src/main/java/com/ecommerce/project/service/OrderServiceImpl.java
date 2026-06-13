@@ -11,7 +11,6 @@ import com.ecommerce.project.model.OrderItem;
 import com.ecommerce.project.model.OrderStatus;
 import com.ecommerce.project.model.Payment;
 import com.ecommerce.project.model.PaymentMethod;
-import com.ecommerce.project.model.PaymentStatus;
 import com.ecommerce.project.model.Product;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.payload.OrderDTO;
@@ -23,13 +22,13 @@ import com.ecommerce.project.repositories.AddressRepository;
 import com.ecommerce.project.repositories.CartRepository;
 import com.ecommerce.project.repositories.OrderItemRepository;
 import com.ecommerce.project.repositories.OrderRepository;
-import com.ecommerce.project.repositories.PaymentRepository;
 import com.ecommerce.project.repositories.ProductRepository;
 import com.ecommerce.project.util.AuthUtil;
 import com.ecommerce.project.util.ImageUrlUtil;
 import com.ecommerce.project.util.PaginationValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +45,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     private final CartRepository cartRepository;
@@ -73,9 +73,12 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod) {
+        log.info("Order placement requested. email={}, addressId={}, paymentMethod={}", emailId, addressId, paymentMethod);
+
         // Getting User Cart
         Cart cart = cartRepository.findCartByEmail(emailId);
         if (cart == null) {
+            log.warn("Order placement failed. Cart not found for email={}", emailId);
             throw new ResourceNotFoundException("Cart", "email", emailId);
         }
 
@@ -84,6 +87,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<CartItem> cartItems = cart.getCartItems();
         if (cartItems.isEmpty()) {
+            log.warn("Order placement failed. Cart is empty. email={}", emailId);
             throw new APIException("Cart is empty!");
         }
 
@@ -98,6 +102,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         if (!stockErrors.isEmpty()) {
+            log.warn("Order placement failed due to stock shortage. email={}, issues={}", emailId, stockErrors);
             throw new OutOfStockException("Inventory Issues", stockErrors);
         }
 
@@ -112,6 +117,8 @@ public class OrderServiceImpl implements OrderService {
         Payment payment = paymentService.createSuccessfulPayment(order, paymentMethod);
         order.setPayment(payment);
         Order savedOrder = orderRepository.save(order);
+        log.info("Order created. orderId={}, email={}, amount={}",
+                savedOrder.getOrderId(), emailId, savedOrder.getTotalAmount());
 
         // Convert CartItems into OrderItems
         List<OrderItem> orderItems = new ArrayList<>();
@@ -136,6 +143,9 @@ public class OrderServiceImpl implements OrderService {
         cartItems.clear();
         cart.setTotalPrice(BigDecimal.ZERO);
         cartRepository.save(cart);
+
+        log.info("Order completed successfully. orderId={}, email={}, itemsCount={}, totalAmount={}",
+                savedOrder.getOrderId(), emailId, orderItems.size(), savedOrder.getTotalAmount());
 
         // Send back order summary
         OrderDTO orderDTO = modelMapper.map(savedOrder, OrderDTO.class);
@@ -189,9 +199,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderDTO updateOrder(Long orderId, OrderStatus status) {
+        log.info("Order status update requested. orderId={}, newStatus={}", orderId, status);
+
         Order order = orderRepository.findOrderWithDetailsByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", orderId));
         order.setOrderStatus(status);
+
+        log.info("Order status updated successfully. orderId={}, status={}", orderId, status);
 
         OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
         orderDTO.setOrderItems(order.getOrderItems()
