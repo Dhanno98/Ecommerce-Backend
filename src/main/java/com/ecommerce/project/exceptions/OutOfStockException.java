@@ -7,15 +7,10 @@ import java.util.Map;
 
 @Getter
 public class OutOfStockException extends RuntimeException {
-    private String message;
-    private Map<String, String> map = new HashMap<>();
+    private Map<String, String> errors = new HashMap<>();
 
-    public OutOfStockException() {
-    }
-
-    public OutOfStockException(String message, Map<String, String> map) {
+    public OutOfStockException(String message, Map<String, String> errors) {
         super(message);
-        this.message = message;
-        this.map = map;
+        this.errors = errors;
     }
 }

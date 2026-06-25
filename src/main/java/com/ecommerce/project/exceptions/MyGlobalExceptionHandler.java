@@ -49,7 +49,7 @@ public class MyGlobalExceptionHandler {
     public ResponseEntity<Object> myOutOfStockException(OutOfStockException e) {
         Map<String, Object> map = new HashMap<>();
         map.put("message", "Requested quantity for these items is greater than the available stock! Please remove excess items and then place the order.");
-        map.put("excess items", e.getMap());
+        map.put("excess items", e.getErrors());
         map.put("status", false);
         return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
     }
