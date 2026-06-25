@@ -370,7 +370,7 @@ public class OrderServiceImplTest {
 
         List<Order> orders = List.of(order);
 
-        Pageable pageable = PageRequest.of(0, 1);
+        Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(orders, pageable, orders.size());
 
         OrderItemResponseDTO orderItemResponseDTO = createOrderItemResponseDTO(orderItem);
@@ -399,7 +399,7 @@ public class OrderServiceImplTest {
         when(imageUrlUtil.constructImageUrl(orderItem.getProduct().getImage()))
                 .thenReturn("http://localhost/images/" + orderItem.getProduct().getImage());
 
-        OrderResponse result = orderService.getAllOrders(0, 1, "orderId", "asc");
+        OrderResponse result = orderService.getAllOrders(0, 10, "orderId", "asc");
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
@@ -431,13 +431,13 @@ public class OrderServiceImplTest {
         Pageable captured = pageableCaptor.getValue();
 
         assertEquals(0, captured.getPageNumber());
-        assertEquals(1, captured.getPageSize());
+        assertEquals(10, captured.getPageSize());
 
         Sort.Order sortOrder = captured.getSort().iterator().next();
         assertEquals("orderId", sortOrder.getProperty());
         assertEquals(Sort.Direction.ASC, sortOrder.getDirection());
 
-        verify(paginationValidator).validate(eq(0), eq(1), eq("orderId"), eq("asc"), anyList());
+        verify(paginationValidator).validate(eq(0), eq(10), eq("orderId"), eq("asc"), anyList());
         verify(modelMapper).map(order, OrderDTO.class);
         verify(modelMapper).map(orderItem, OrderItemResponseDTO.class);
         verify(imageUrlUtil).constructImageUrl(orderItem.getProduct().getImage());
@@ -454,7 +454,7 @@ public class OrderServiceImplTest {
         when(orderRepository.findAll(any(Pageable.class)))
                 .thenReturn(emptyPage);
 
-        OrderResponse result = orderService.getAllOrders(0, 1, "orderId", "asc");
+        OrderResponse result = orderService.getAllOrders(0, 10, "orderId", "asc");
 
         assertTrue(result.getContent().isEmpty());
         assertEquals(0L, result.getTotalElements());
@@ -462,7 +462,7 @@ public class OrderServiceImplTest {
         assertEquals(1, result.getTotalPages());
         assertTrue(result.isLastPage());
 
-        verify(paginationValidator).validate(eq(0), eq(1), eq("orderId"), eq("asc"), anyList());
+        verify(paginationValidator).validate(eq(0), eq(10), eq("orderId"), eq("asc"), anyList());
         verify(orderRepository).findAll(any(Pageable.class));
         verify(modelMapper, never()).map(any(Order.class), eq(OrderDTO.class));
         verify(modelMapper, never()).map(any(OrderItem.class), eq(OrderItemResponseDTO.class));
@@ -603,7 +603,7 @@ public class OrderServiceImplTest {
 
         List<Order> sellerOrders = List.of(sellerOrder);
 
-        Pageable pageable = PageRequest.of(0, 1);
+        Pageable pageable = PageRequest.of(0, 10);
         Page<Order> orderPage = new PageImpl<>(sellerOrders, pageable, sellerOrders.size());
 
         OrderItemResponseDTO responseDTO = createOrderItemResponseDTO(orderItem1);
@@ -631,7 +631,7 @@ public class OrderServiceImplTest {
         when(imageUrlUtil.constructImageUrl(orderItem1.getProduct().getImage()))
                 .thenReturn("http://localhost/images/" + orderItem1.getProduct().getImage());
 
-        SellerOrderResponse result = orderService.getAllSellerOrders(0, 1, "orderId", "asc");
+        SellerOrderResponse result = orderService.getAllSellerOrders(0, 10, "orderId", "asc");
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
@@ -673,13 +673,13 @@ public class OrderServiceImplTest {
         Pageable captured = pageableCaptor.getValue();
 
         assertEquals(0, captured.getPageNumber());
-        assertEquals(1, captured.getPageSize());
+        assertEquals(10, captured.getPageSize());
 
         Sort.Order sortOrder = captured.getSort().iterator().next();
         assertEquals("orderId", sortOrder.getProperty());
         assertEquals(Sort.Direction.ASC, sortOrder.getDirection());
 
-        verify(paginationValidator).validate(eq(0), eq(1), eq("orderId"), eq("asc"), anyList());
+        verify(paginationValidator).validate(eq(0), eq(10), eq("orderId"), eq("asc"), anyList());
         verify(authUtil).loggedInUser();
         verify(modelMapper).map(sellerOrder, SellerOrderDTO.class);
         verify(modelMapper).map(orderItem1, OrderItemResponseDTO.class);
