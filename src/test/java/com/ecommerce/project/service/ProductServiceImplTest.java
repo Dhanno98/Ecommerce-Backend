@@ -30,6 +30,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -796,12 +797,16 @@ public class ProductServiceImplTest {
         CartItem cartItem = createCartItem(productFromDB);
         cartItem.setCart(cart);
 
-        List<CartItem> cartItems = List.of(cartItem);
+        List<CartItem> repositoryCartItems = new ArrayList<>();
+        repositoryCartItems.add(cartItem);
 
-        cart.setCartItems(cartItems);
+        List<CartItem> cartCollection = new ArrayList<>();
+        cartCollection.add(cartItem);
+
+        cart.setCartItems(cartCollection);
         cart.setTotalPrice(cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
 
-        productFromDB.setCartItems(cartItems);
+        productFromDB.setCartItems(new ArrayList<>(repositoryCartItems));
 
         ProductDTO productDTO = createProductDTO(productFromDB);
 
@@ -809,9 +814,9 @@ public class ProductServiceImplTest {
                 .thenReturn(Optional.of(productFromDB));
 
         when(cartItemRepository.findAllByProductId(1L))
-                .thenReturn(cartItems);
+                .thenReturn(repositoryCartItems);
 
-        doNothing().when(cartItemRepository).deleteAll(cartItems);
+        doNothing().when(cartItemRepository).deleteAll(repositoryCartItems);
 
         doNothing().when(productRepository).delete(productFromDB);
 
@@ -831,10 +836,11 @@ public class ProductServiceImplTest {
         assertEquals(productFromDB.getDiscount(), result.getDiscount());
         assertEquals(productFromDB.getSpecialPrice(), result.getSpecialPrice());
         assertEquals(0, BigDecimal.ZERO.compareTo(cart.getTotalPrice()));
+        assertTrue(cart.getCartItems().isEmpty());
 
         verify(productRepository).findById(1L);
         verify(cartItemRepository).findAllByProductId(1L);
-        verify(cartItemRepository).deleteAll(cartItems);
+        verify(cartItemRepository).deleteAll(repositoryCartItems);
         verify(productRepository).delete(productFromDB);
         verify(modelMapper).map(productFromDB, ProductDTO.class);
         verify(imageUrlUtil).constructImageUrl(productFromDB.getImage());
@@ -870,12 +876,16 @@ public class ProductServiceImplTest {
         CartItem cartItem = createCartItem(productFromDB);
         cartItem.setCart(cart);
 
-        List<CartItem> cartItems = List.of(cartItem);
+        List<CartItem> repositoryCartItems = new ArrayList<>();
+        repositoryCartItems.add(cartItem);
 
-        cart.setCartItems(cartItems);
+        List<CartItem> cartCollection = new ArrayList<>();
+        cartCollection.add(cartItem);
+
+        cart.setCartItems(cartCollection);
         cart.setTotalPrice(cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
 
-        productFromDB.setCartItems(cartItems);
+        productFromDB.setCartItems(new ArrayList<>(repositoryCartItems));
 
         ProductDTO productDTO = createProductDTO(productFromDB);
 
@@ -886,9 +896,9 @@ public class ProductServiceImplTest {
                 .thenReturn(Optional.of(productFromDB));
 
         when(cartItemRepository.findAllByProductId(1L))
-                .thenReturn(cartItems);
+                .thenReturn(repositoryCartItems);
 
-        doNothing().when(cartItemRepository).deleteAll(cartItems);
+        doNothing().when(cartItemRepository).deleteAll(repositoryCartItems);
 
         doNothing().when(productRepository).delete(productFromDB);
 
@@ -912,7 +922,7 @@ public class ProductServiceImplTest {
         verify(authUtil).loggedInUser();
         verify(productRepository).findById(1L);
         verify(cartItemRepository).findAllByProductId(1L);
-        verify(cartItemRepository).deleteAll(cartItems);
+        verify(cartItemRepository).deleteAll(repositoryCartItems);
         verify(productRepository).delete(productFromDB);
         verify(modelMapper).map(productFromDB, ProductDTO.class);
         verify(imageUrlUtil).constructImageUrl(productFromDB.getImage());
