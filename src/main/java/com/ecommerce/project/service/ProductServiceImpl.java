@@ -112,27 +112,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse getAllProductsForAdmin(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder, String keyword, String category) {
-        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
-
-        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
-                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-
-        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
-        Specification<Product> spec = getProductSpecification(keyword, category);
-
-        Page<Product> productPage = productRepository.findAll(spec, pageDetails);
-
-        List<Product> products = productPage.getContent();
-
-        List<ProductDTO> productDTOS = products.stream()
-                .map(this::mapToDTO)
-                .toList();
-
-        return buildProductResponse(productPage, productDTOS);
-    }
-
-    @Override
     public ProductResponse getAllProductsForSeller(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
 
@@ -205,29 +184,10 @@ public class ProductServiceImpl implements ProductService {
             throw new APIException("Product with name: " + productRequest.getProductName() + " already exists.");
         }
 
-        productFromDB.setProductName(productRequest.getProductName());
-        productFromDB.setDescription(productRequest.getDescription());
-        productFromDB.setQuantity(productRequest.getQuantity());
-        productFromDB.setPrice(productRequest.getPrice());
-        productFromDB.setDiscount(productRequest.getDiscount());
-        BigDecimal specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
-        productFromDB.setSpecialPrice(specialPrice);
-
-        List<CartItem> cartItems = cartItemRepository.findAllByProductId(productFromDB.getProductId());
-        for (CartItem cartItem : cartItems) {
-            Cart cart = cartItem.getCart();
-            BigDecimal oldPrice = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-
-            cartItem.setDiscount(productFromDB.getDiscount());
-            cartItem.setProductPrice(specialPrice);
-
-            BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
-        }
+        updateProductDetails(productFromDB, productRequest);
 
         log.info("Product updated successfully. productId={}, productName={}",
                 productFromDB.getProductId(), productFromDB.getProductName());
-
         return mapToDTO(productFromDB);
     }
 
@@ -253,25 +213,7 @@ public class ProductServiceImpl implements ProductService {
             throw new APIException("Product with name: " + productRequest.getProductName() + " already exists.");
         }
 
-        productFromDB.setProductName(productRequest.getProductName());
-        productFromDB.setDescription(productRequest.getDescription());
-        productFromDB.setQuantity(productRequest.getQuantity());
-        productFromDB.setPrice(productRequest.getPrice());
-        productFromDB.setDiscount(productRequest.getDiscount());
-        BigDecimal specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
-        productFromDB.setSpecialPrice(specialPrice);
-
-        List<CartItem> cartItems = cartItemRepository.findAllByProductId(productFromDB.getProductId());
-        for (CartItem cartItem : cartItems) {
-            Cart cart = cartItem.getCart();
-            BigDecimal oldPrice = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-
-            cartItem.setDiscount(productFromDB.getDiscount());
-            cartItem.setProductPrice(specialPrice);
-
-            BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
-        }
+        updateProductDetails(productFromDB, productRequest);
 
         log.info("Seller product updated successfully. sellerId={}, productId={}", seller.getUserId(), productId);
         return mapToDTO(productFromDB);
@@ -285,18 +227,10 @@ public class ProductServiceImpl implements ProductService {
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        List<CartItem> cartItems = cartItemRepository.findAllByProductId(productId);
-        for (CartItem cartItem : cartItems) {
-            Cart cart = cartItem.getCart();
-            BigDecimal deduction = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            cart.setTotalPrice(cart.getTotalPrice().subtract(deduction));
-        }
-        cartItemRepository.deleteAll(cartItems);
-        productRepository.delete(productFromDB);
+        deleteProductDetails(productFromDB);
 
         log.info("Product deleted successfully. productId={}, productName={}",
                 productFromDB.getProductId(), productFromDB.getProductName());
-
         return mapToDTO(productFromDB);
     }
 
@@ -316,14 +250,7 @@ public class ProductServiceImpl implements ProductService {
             throw new APIException("Product cannot be deleted as it does not belong to this seller!");
         }
 
-        List<CartItem> cartItems = cartItemRepository.findAllByProductId(productId);
-        for (CartItem cartItem : cartItems) {
-            Cart cart = cartItem.getCart();
-            BigDecimal deduction = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            cart.setTotalPrice(cart.getTotalPrice().subtract(deduction));
-        }
-        cartItemRepository.deleteAll(cartItems);
-        productRepository.delete(productFromDB);
+        deleteProductDetails(productFromDB);
 
         log.info("Seller product deleted successfully. sellerId={}, productId={}", seller.getUserId(), productId);
         return mapToDTO(productFromDB);
@@ -334,33 +261,16 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO updateProductImage(Long productId, MultipartFile image) throws IOException {
         log.info("Product image update requested. productId={}", productId);
 
-        if (image.isEmpty()) {
-            log.warn("Image upload failed. Empty image. productId={}", productId);
-            throw new APIException("Image cannot be empty");
-        }
-
-        String contentType = image.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(image.getContentType())) {
-            log.warn("Image upload failed. Invalid content type={}. productId={}", contentType, productId);
-            throw new APIException("Invalid image type. Valid image types: PNG, JPEG, WEBP");
-        }
-
-        if (image.getSize() > 5 * 1024 * 1024) {
-            log.warn("Image upload failed. File too large. size={}, productId={}", image.getSize(), productId);
-            throw new APIException("Image size exceeds 5MB");
-        }
+        validateProductImage(productId, image);
 
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        String fileName = fileService.uploadImage(path, image);
-
-        productFromDB.setImage(fileName);
-
-        Product updatedProduct = productRepository.save(productFromDB);
+        Product updatedProduct = updateProductImageDetails(productFromDB, image);
 
         log.info("Product image updated successfully. productId={}, image={}",
                 updatedProduct.getProductId(), updatedProduct.getImage());
+
         return mapToDTO(updatedProduct);
     }
 
@@ -371,23 +281,7 @@ public class ProductServiceImpl implements ProductService {
 
         log.info("Seller image update requested. sellerId={}, productId={}", seller.getUserId(), productId);
 
-        if (image.isEmpty()) {
-            log.warn("Seller image upload failed. Empty image. sellerId={}, productId={}", seller.getUserId(), productId);
-            throw new APIException("Image cannot be empty");
-        }
-
-        String contentType = image.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(image.getContentType())) {
-            log.warn("Seller image upload failed. Invalid content type={}. productId={}, sellerId={}",
-                    contentType, productId, seller.getUserId());
-            throw new APIException("Invalid image type. Valid image types: PNG, JPEG, WEBP");
-        }
-
-        if (image.getSize() > 5 * 1024 * 1024) {
-            log.warn("Image upload failed. File too large. size={}, productId={}, sellerId={}",
-                    image.getSize(), productId, seller.getUserId());
-            throw new APIException("Image size exceeds 5MB");
-        }
+        validateProductImage(productId, image);
 
         Product productFromDB = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
@@ -398,11 +292,7 @@ public class ProductServiceImpl implements ProductService {
             throw new APIException("Product image cannot be updated as it does not belong to this seller!");
         }
 
-        String fileName = fileService.uploadImage(path, image);
-
-        productFromDB.setImage(fileName);
-
-        Product updatedProduct = productRepository.save(productFromDB);
+        Product updatedProduct = updateProductImageDetails(productFromDB, image);
 
         log.info("Seller product image updated successfully. sellerId={}, productId={}, image={}",
                 seller.getUserId(), productId, updatedProduct.getImage());
@@ -447,4 +337,61 @@ public class ProductServiceImpl implements ProductService {
         return productResponse;
     }
 
+    private void updateProductDetails(Product product, CreateProductRequest productRequest) {
+        product.setProductName(productRequest.getProductName());
+        product.setDescription(productRequest.getDescription());
+        product.setQuantity(productRequest.getQuantity());
+        product.setPrice(productRequest.getPrice());
+        product.setDiscount(productRequest.getDiscount());
+        BigDecimal specialPrice = calculateSpecialPrice(productRequest.getPrice(), productRequest.getDiscount());
+        product.setSpecialPrice(specialPrice);
+
+        List<CartItem> cartItems = cartItemRepository.findAllByProductId(product.getProductId());
+        for (CartItem cartItem : cartItems) {
+            Cart cart = cartItem.getCart();
+            BigDecimal oldPrice = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
+            cartItem.setDiscount(product.getDiscount());
+            cartItem.setProductPrice(specialPrice);
+
+            BigDecimal newPrice = specialPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
+        }
+    }
+
+    private void deleteProductDetails(Product product) {
+        List<CartItem> cartItems = cartItemRepository.findAllByProductId(product.getProductId());
+        for (CartItem cartItem : cartItems) {
+            Cart cart = cartItem.getCart();
+            BigDecimal deduction = cartItem.getProductPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            cart.setTotalPrice(cart.getTotalPrice().subtract(deduction));
+            cart.getCartItems().remove(cartItem);
+        }
+        cartItemRepository.deleteAll(cartItems);
+        productRepository.delete(product);
+    }
+
+    private void validateProductImage(Long productId, MultipartFile image) {
+        if (image.isEmpty()) {
+            log.warn("Image upload failed. Empty image. productId={}", productId);
+            throw new APIException("Image cannot be empty");
+        }
+
+        String contentType = image.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            log.warn("Image upload failed. Invalid content type={}. productId={}", contentType, productId);
+            throw new APIException("Invalid image type. Valid image types: PNG, JPEG, WEBP");
+        }
+
+        if (image.getSize() > 5 * 1024 * 1024) {
+            log.warn("Image upload failed. File too large. size={}, productId={}", image.getSize(), productId);
+            throw new APIException("Image size exceeds 5MB");
+        }
+    }
+
+    private Product updateProductImageDetails(Product product, MultipartFile image) throws IOException {
+        String fileName = fileService.uploadImage(path, image);
+        product.setImage(fileName);
+        return productRepository.save(product);
+    }
 }
