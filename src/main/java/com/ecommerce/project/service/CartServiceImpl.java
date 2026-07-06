@@ -48,7 +48,7 @@ public class CartServiceImpl implements CartService {
         log.info("Add to cart requested. userId={}, productId={}, quantity={}",
                 authUtil.loggedInUserId(), productId, quantity);
 
-        if (quantity == null || quantity < 1) {
+        if (quantity < 1) {
             throw new APIException("Requested quantity must be greater than 0");
         }
 
