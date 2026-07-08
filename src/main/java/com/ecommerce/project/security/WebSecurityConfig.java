@@ -1,5 +1,6 @@
 package com.ecommerce.project.security;
 
+import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -118,26 +121,41 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public CommandLineRunner initData(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner initRoles(RoleRepository roleRepository) {
         return args -> {
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+            roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseGet(() -> {
                         Role newUserRole = new Role(AppRole.ROLE_USER);
                         return roleRepository.save(newUserRole);
                     });
 
-            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
+            roleRepository.findByRoleName(AppRole.ROLE_SELLER)
                     .orElseGet(() -> {
                         Role newSellerRole = new Role(AppRole.ROLE_SELLER);
                         return roleRepository.save(newSellerRole);
                     });
 
-            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
+            roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
                     .orElseGet(() -> {
                         Role newAdminRole = new Role(AppRole.ROLE_ADMIN);
                         return roleRepository.save(newAdminRole);
                     });
+        };
+    }
 
+    @Bean
+    @DependsOn("initRoles")
+    @Profile("!test")
+    public CommandLineRunner seedUsers(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        return args -> {
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                    .orElseThrow(() -> new APIException("ROLE_USER not found"));
+
+            Role sellerRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
+                    .orElseThrow(() -> new APIException("ROLE_SELLER not found"));
+
+            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
+                    .orElseThrow(() -> new APIException("ROLE_ADMIN not found"));
 
             Set<Role> userRoles = Set.of(userRole);
             Set<Role> sellerRoles = Set.of(sellerRole);
