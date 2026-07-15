@@ -1,5 +1,6 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.model.Address;
 import com.ecommerce.project.model.Order;
 import com.ecommerce.project.model.OrderStatus;
@@ -20,7 +21,9 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,13 +49,17 @@ public class PaymentServiceImplTest {
         order.setTotalAmount(new BigDecimal("270"));
 
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         Payment savedPayment = createPayment(order, paymentMethod);
+
+        when(paymentRepository.findByPgPaymentId(paymentIntentId))
+                .thenReturn(null);
 
         when(paymentRepository.save(any(Payment.class)))
                 .thenReturn(savedPayment);
 
-        Payment result = paymentService.createSuccessfulPayment(order, paymentMethod);
+        Payment result = paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId);
 
         assertNotNull(result);
 
@@ -68,6 +75,36 @@ public class PaymentServiceImplTest {
         assertEquals("Stripe", payment.getPgName());
 
         assertSame(savedPayment, result);
+    }
+
+    @Test
+    void createSuccessfulPaymentShouldThrowApiExceptionIfThePaymentIsAlreadyProcessed() {
+        User user = createUser(1L);
+
+        Address address = createAddress();
+        address.setAddressId(1L);
+        address.setUser(user);
+
+        Order order = createOrder(user, address);
+        order.setTotalAmount(new BigDecimal("270"));
+
+        PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
+
+        Payment savedPayment = createPayment(order, paymentMethod);
+
+        when(paymentRepository.findByPgPaymentId(paymentIntentId))
+                .thenReturn(savedPayment);
+
+        APIException exception = assertThrows(
+                APIException.class,
+                () -> paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId)
+        );
+
+        assertEquals("This payment has already been processed", exception.getMessage());
+
+        verify(paymentRepository).findByPgPaymentId(paymentIntentId);
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     /// HELPERS

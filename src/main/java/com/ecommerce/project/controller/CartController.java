@@ -1,7 +1,6 @@
 package com.ecommerce.project.controller;
 
 import com.ecommerce.project.payload.CartDTO;
-import com.ecommerce.project.payload.CartItemDTO;
 import com.ecommerce.project.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -54,11 +52,5 @@ public class CartController {
     public ResponseEntity<String> deleteProductFromCart(@PathVariable Long productId) {
         String status = cartService.deleteProductFromCart(productId);
         return new ResponseEntity<>(status, HttpStatus.OK);
-    }
-
-    @PostMapping("/cart/create")
-    public ResponseEntity<String> createOrUpdateCart(@RequestBody List<CartItemDTO> cartItemDTOS) {
-        String response = cartService.createOrUpdateCartWithItems(cartItemDTOS);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

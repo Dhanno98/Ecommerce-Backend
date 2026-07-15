@@ -121,6 +121,7 @@ public class OrderServiceImplTest {
 
         String email = user.getEmail();
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         Payment payment = createPayment(paymentMethod);
 
@@ -147,7 +148,7 @@ public class OrderServiceImplTest {
         when(addressRepository.findByIdAndUserEmailId(1L, email))
                 .thenReturn(Optional.of(address));
 
-        when(paymentService.createSuccessfulPayment(any(Order.class), eq(paymentMethod)))
+        when(paymentService.createSuccessfulPayment(any(Order.class), eq(paymentMethod), eq(paymentIntentId)))
                 .thenReturn(payment);
 
         when(orderRepository.save(any(Order.class)))
@@ -165,7 +166,7 @@ public class OrderServiceImplTest {
         when(imageUrlUtil.constructImageUrl(cartItem.getProduct().getImage()))
                 .thenReturn("http://localhost/images/" + cartItem.getProduct().getImage());
 
-        OrderDTO result = orderService.placeOrder(email, 1L, paymentMethod);
+        OrderDTO result = orderService.placeOrder(email, 1L, paymentMethod, paymentIntentId);
 
         assertNotNull(result);
 
@@ -213,7 +214,7 @@ public class OrderServiceImplTest {
 
         verify(cartRepository).findCartByEmail(email);
         verify(addressRepository).findByIdAndUserEmailId(1L, email);
-        verify(paymentService).createSuccessfulPayment(any(Order.class), eq(paymentMethod));
+        verify(paymentService).createSuccessfulPayment(any(Order.class), eq(paymentMethod), eq(paymentIntentId));
         verify(productRepository).save(product);
         verify(cartRepository).save(cart);
         verify(modelMapper).map(savedOrder, OrderDTO.class);
@@ -226,13 +227,14 @@ public class OrderServiceImplTest {
         User user = createUser(1L);
         String email = user.getEmail();
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         when(cartRepository.findCartByEmail(email))
                 .thenReturn(null);
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> orderService.placeOrder(email, 1L, paymentMethod)
+                () -> orderService.placeOrder(email, 1L, paymentMethod, paymentIntentId)
         );
 
         assertEquals("Cart not found with email: " + email, exception.getMessage());
@@ -249,6 +251,7 @@ public class OrderServiceImplTest {
         Cart cart = createCart(user);
         String email = user.getEmail();
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         when(cartRepository.findCartByEmail(email))
                 .thenReturn(cart);
@@ -258,7 +261,7 @@ public class OrderServiceImplTest {
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> orderService.placeOrder(email, 1L, paymentMethod)
+                () -> orderService.placeOrder(email, 1L, paymentMethod, paymentIntentId)
         );
 
         assertEquals("Address not found with addressId: 1", exception.getMessage());
@@ -277,6 +280,7 @@ public class OrderServiceImplTest {
         Address address = createAddress(user);
         String email = user.getEmail();
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         when(cartRepository.findCartByEmail(email))
                 .thenReturn(cart);
@@ -286,7 +290,7 @@ public class OrderServiceImplTest {
 
         APIException exception = assertThrows(
                 APIException.class,
-                () -> orderService.placeOrder(email, 1L, paymentMethod)
+                () -> orderService.placeOrder(email, 1L, paymentMethod, paymentIntentId)
         );
 
         assertEquals("Cart is empty!", exception.getMessage());
@@ -319,6 +323,7 @@ public class OrderServiceImplTest {
 
         String email = user.getEmail();
         PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
 
         when(cartRepository.findCartByEmail(email))
                 .thenReturn(cart);
@@ -328,7 +333,7 @@ public class OrderServiceImplTest {
 
         OutOfStockException exception = assertThrows(
                 OutOfStockException.class,
-                () -> orderService.placeOrder(email, 1L, paymentMethod)
+                () -> orderService.placeOrder(email, 1L, paymentMethod, paymentIntentId)
         );
 
         assertEquals("Inventory Issues", exception.getMessage());

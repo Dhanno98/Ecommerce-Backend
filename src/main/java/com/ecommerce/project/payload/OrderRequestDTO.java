@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class OrderRequestDTO {
     private Long addressId;
     private PaymentMethod paymentMethod;
+    private String paymentIntentId;
 }

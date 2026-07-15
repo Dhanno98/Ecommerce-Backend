@@ -43,7 +43,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -641,7 +640,7 @@ public class CartControllerIT {
     }
 
     @Test
-    void getCartByIdShouldReturnBadRequestWhenTheLoggedInUserHasNoCartCreatedYet() throws Exception {
+    void getCartByIdShouldReturnEmptyCartWhenTheLoggedInUserHasNoCartCreatedYet() throws Exception {
         Role savedRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
 
         User user = createUser("Test User", "user@gmail.com", "password");
@@ -652,10 +651,11 @@ public class CartControllerIT {
 
         mockMvc.perform(get("/api/carts/users/cart")
                         .with(user(userDetails)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.message").value("Cart not yet created!"))
-                .andExpect(jsonPath("$.status").value(false));
+                .andExpect(jsonPath("$.cartId").doesNotExist())
+                .andExpect(jsonPath("$.cartItems").isEmpty())
+                .andExpect(jsonPath("$.totalPrice").value(BigDecimal.ZERO.doubleValue()));
     }
 
     @Test
@@ -892,7 +892,6 @@ public class CartControllerIT {
 
         mockMvc.perform(put("/api/cart/products/{productId}/quantity/{operation}", productId, operation)
                         .with(user(userDetails)))
-                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Product not found with productId: " + productId))

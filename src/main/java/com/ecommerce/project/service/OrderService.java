@@ -8,7 +8,7 @@ import com.ecommerce.project.payload.SellerOrderResponse;
 
 public interface OrderService {
 
-    OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod);
+    OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod, String paymentIntentId);
 
     OrderResponse getAllOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 

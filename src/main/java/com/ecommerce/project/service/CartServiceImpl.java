@@ -6,7 +6,6 @@ import com.ecommerce.project.model.Cart;
 import com.ecommerce.project.model.CartItem;
 import com.ecommerce.project.model.Product;
 import com.ecommerce.project.payload.CartDTO;
-import com.ecommerce.project.payload.CartItemDTO;
 import com.ecommerce.project.payload.CartItemResponseDTO;
 import com.ecommerce.project.repositories.CartItemRepository;
 import com.ecommerce.project.repositories.CartRepository;
@@ -20,6 +19,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -110,8 +110,11 @@ public class CartServiceImpl implements CartService {
         Cart cart = cartRepository.findCartByUserId(userId);
 
         if (cart == null) {
-            log.warn("Cart not found for userId={}", userId);
-            throw new APIException("Cart not yet created!");
+            CartDTO dto = new CartDTO();
+            dto.setCartItems(Collections.emptyList());
+            dto.setTotalPrice(BigDecimal.ZERO);
+            dto.setCartId(null);
+            return dto;
         }
 
         return mapToCartDTO(cart);
@@ -208,62 +211,6 @@ public class CartServiceImpl implements CartService {
 
         log.info("Cart item deleted successfully. userId={}, productId={}", userId, productId);
         return "Product " + cartItem.getProduct().getProductName() + " removed from the cart!";
-    }
-
-    @Transactional
-    @Override
-    public String createOrUpdateCartWithItems(List<CartItemDTO> cartItemDTOS) {
-        // Get user's email
-        String emailId= authUtil.loggedInEmail();
-
-        log.info("Bulk cart update requested. userEmail={}, itemCount={}", emailId, cartItemDTOS.size());
-
-        // Check if an existing cart is available or create a new one
-        Cart existingCart = cartRepository.findCartByEmail(emailId);
-        if (existingCart == null) {
-            log.info("Creating new cart for userEmail={}", emailId);
-            existingCart = new Cart();
-            existingCart.setTotalPrice(BigDecimal.ZERO);
-            existingCart.setUser(authUtil.loggedInUser());
-            existingCart = cartRepository.save(existingCart);
-        } else {
-            // Clear all current items in the existing cart
-            log.info("Replacing existing cart contents. cartId={}", existingCart.getCartId());
-            cartItemRepository.deleteAllByCartId(existingCart.getCartId());
-        }
-
-        BigDecimal totalPrice = BigDecimal.ZERO;
-
-        // Process each item in the request to add to the cart
-        for (CartItemDTO cartItemDTO : cartItemDTOS) {
-            Long productId = cartItemDTO.getProductId();
-            Integer quantity = cartItemDTO.getQuantity();
-
-            // Find product by ID
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
-
-            // Directly update product stock and total price
-            // product.setQuantity(product.getQuantity() - quantity);
-            totalPrice = totalPrice.add(product.getSpecialPrice().multiply(BigDecimal.valueOf(quantity)));
-
-            // Create and save cart item
-            CartItem cartItem = new CartItem();
-            cartItem.setProduct(product);
-            cartItem.setCart(existingCart);
-            cartItem.setQuantity(quantity);
-            cartItem.setProductPrice(product.getSpecialPrice());
-            cartItem.setDiscount(product.getDiscount());
-            cartItemRepository.save(cartItem);
-        }
-
-        // Update the cart's total price and save
-        existingCart.setTotalPrice(totalPrice);
-        cartRepository.save(existingCart);
-
-        log.info("Cart updated successfully. cartId={}, itemCount={}, totalPrice={}",
-                existingCart.getCartId(), cartItemDTOS.size(), totalPrice);
-        return "Cart created/updated with new items successfully";
     }
 
     private Cart findCart() {

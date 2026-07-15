@@ -100,7 +100,7 @@ public class AnalyticsControllerIT {
                 new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
         Product savedProduct2 = productRepository.save(product2);
 
-        Payment payment1 = createPayment(PaymentMethod.CARD);
+        Payment payment1 = createPayment(PaymentMethod.CARD, "MOCK1");
         Payment savedPayment1 = paymentRepository.save(payment1);
 
         Order order1 = createOrder(savedUser, savedAddress, savedPayment1);
@@ -126,7 +126,7 @@ public class AnalyticsControllerIT {
         savedOrder1.setTotalAmount(amount1);
         orderRepository.save(savedOrder1);
 
-        Payment payment2 = createPayment(PaymentMethod.CARD);
+        Payment payment2 = createPayment(PaymentMethod.CARD, "MOCK2");
         Payment savedPayment2 = paymentRepository.save(payment2);
 
         Order order2 = createOrder(savedUser, savedAddress, savedPayment2);
@@ -266,10 +266,10 @@ public class AnalyticsControllerIT {
         return address;
     }
 
-    private Payment createPayment(PaymentMethod paymentMethod) {
+    private Payment createPayment(PaymentMethod paymentMethod, String paymentIntentId) {
         return new Payment(
                 paymentMethod,
-                "MOCK",
+                paymentIntentId,
                 PaymentStatus.SUCCESS,
                 "Payment Successful",
                 "Stripe"
