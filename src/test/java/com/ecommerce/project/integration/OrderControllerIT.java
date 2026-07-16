@@ -132,7 +132,7 @@ public class OrderControllerIT {
         cartRepository.save(savedCart);
         BigDecimal cartTotal = savedCart.getTotalPrice();
 
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -210,7 +210,7 @@ public class OrderControllerIT {
         Address address = createAddress(savedUser);
         Address savedAddress = addressRepository.save(address);
 
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -244,7 +244,7 @@ public class OrderControllerIT {
                 new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
         productRepository.save(product);
 
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -279,7 +279,7 @@ public class OrderControllerIT {
         cartRepository.save(cart);
 
         Long addressId = Long.MAX_VALUE;
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(addressId, PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(addressId, PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -316,7 +316,7 @@ public class OrderControllerIT {
         Cart cart = createCart(savedUser);
         cartRepository.save(cart);
 
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -361,7 +361,7 @@ public class OrderControllerIT {
         savedCart.setTotalPrice(savedCartItem.getProductPrice().multiply(BigDecimal.valueOf(savedCartItem.getQuantity())));
         cartRepository.save(savedCart);
 
-        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD);
+        OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);
 
         mockMvc.perform(post("/api/order/users")
@@ -414,7 +414,7 @@ public class OrderControllerIT {
                 new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
         Product savedProduct2 = productRepository.save(product2);
 
-        Payment payment1 = createPayment(PaymentMethod.CARD);
+        Payment payment1 = createPayment(PaymentMethod.CARD, "MOCK1");
         Payment savedPayment1 = paymentRepository.save(payment1);
 
         Order order1 = createOrder(savedUser, savedAddress, savedPayment1);
@@ -440,7 +440,7 @@ public class OrderControllerIT {
         savedOrder1.setTotalAmount(amount1);
         orderRepository.save(savedOrder1);
 
-        Payment payment2 = createPayment(PaymentMethod.CARD);
+        Payment payment2 = createPayment(PaymentMethod.CARD, "MOCK2");
         Payment savedPayment2 = paymentRepository.save(payment2);
 
         Order order2 = createOrder(savedUser, savedAddress, savedPayment2);
@@ -625,7 +625,7 @@ public class OrderControllerIT {
                 new BigDecimal("150"), new BigDecimal("10"), new BigDecimal("135"));
         Product savedProduct2 = productRepository.save(product2);
 
-        Payment payment1 = createPayment(PaymentMethod.CARD);
+        Payment payment1 = createPayment(PaymentMethod.CARD, "MOCK1");
         Payment savedPayment1 = paymentRepository.save(payment1);
 
         Order order = createOrder(savedUser, savedAddress, savedPayment1);
@@ -710,7 +710,7 @@ public class OrderControllerIT {
                 new BigDecimal("150"), new BigDecimal("10"), new BigDecimal("135"));
         Product savedProduct = productRepository.save(product);
 
-        Payment payment = createPayment(PaymentMethod.CARD);
+        Payment payment = createPayment(PaymentMethod.CARD, "MOCK");
         Payment savedPayment = paymentRepository.save(payment);
 
         Order order = createOrder(savedUser, savedAddress, savedPayment);
@@ -814,7 +814,7 @@ public class OrderControllerIT {
                 new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
         Product savedProduct = productRepository.save(product);
 
-        Payment payment = createPayment(PaymentMethod.CARD);
+        Payment payment = createPayment(PaymentMethod.CARD, "MOCK");
         Payment savedPayment = paymentRepository.save(payment);
 
         Order order = createOrder(savedUser, savedAddress, savedPayment);
@@ -1016,7 +1016,7 @@ public class OrderControllerIT {
                 new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
         Product savedProduct = productRepository.save(product);
 
-        Payment payment = createPayment(PaymentMethod.CARD);
+        Payment payment = createPayment(PaymentMethod.CARD, "MOCK");
         Payment savedPayment = paymentRepository.save(payment);
 
         Order order = createOrder(savedUser, savedAddress, savedPayment);
@@ -1255,17 +1255,18 @@ public class OrderControllerIT {
         return address;
     }
 
-    private OrderRequestDTO createOrderRequestDTO(Long addressId, PaymentMethod paymentMethod) {
+    private OrderRequestDTO createOrderRequestDTO(Long addressId, PaymentMethod paymentMethod, String paymentIntentId) {
         OrderRequestDTO orderRequestDTO = new OrderRequestDTO();
         orderRequestDTO.setAddressId(addressId);
         orderRequestDTO.setPaymentMethod(paymentMethod);
+        orderRequestDTO.setPaymentIntentId(paymentIntentId);
         return orderRequestDTO;
     }
 
-    private Payment createPayment(PaymentMethod paymentMethod) {
+    private Payment createPayment(PaymentMethod paymentMethod, String paymentIntentId) {
         return new Payment(
                 paymentMethod,
-                "MOCK",
+                paymentIntentId,
                 PaymentStatus.SUCCESS,
                 "Payment Successful",
                 "Stripe"

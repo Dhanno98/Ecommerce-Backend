@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -637,7 +638,7 @@ public class CartServiceImplTest {
     }
 
     @Test
-    void getCartShouldThrowApiExceptionWhenCartDoesNotExist() {
+    void getCartShouldReturnEmptyCartWhenCartDoesNotExist() {
         User user = createUser(1L);
 
         when(authUtil.loggedInUserId())
@@ -646,12 +647,12 @@ public class CartServiceImplTest {
         when(cartRepository.findCartByUserId(user.getUserId()))
                 .thenReturn(null);
 
-        APIException exception = assertThrows(
-                APIException.class,
-                () -> cartService.getCart()
-        );
+        CartDTO result = cartService.getCart();
 
-        assertEquals("Cart not yet created!", exception.getMessage());
+        assertNotNull(result);
+        assertTrue(result.getCartItems().isEmpty());
+        assertEquals(0, result.getTotalPrice().compareTo(BigDecimal.ZERO));
+        assertNull(result.getCartId());
 
         verify(authUtil).loggedInUserId();
         verify(cartRepository).findCartByUserId(user.getUserId());

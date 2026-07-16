@@ -39,7 +39,7 @@ public class OrderController {
     @PostMapping("/order/users")
     public ResponseEntity<OrderDTO> orderProducts(@RequestBody OrderRequestDTO orderRequestDTO) {
         String emailId = authUtil.loggedInEmail();
-        OrderDTO orderDTO = orderService.placeOrder(emailId, orderRequestDTO.getAddressId(), orderRequestDTO.getPaymentMethod());
+        OrderDTO orderDTO = orderService.placeOrder(emailId, orderRequestDTO.getAddressId(), orderRequestDTO.getPaymentMethod(), orderRequestDTO.getPaymentIntentId());
         return new ResponseEntity<>(orderDTO, HttpStatus.CREATED);
     }
 

@@ -72,8 +72,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
-    public OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod) {
-        log.info("Order placement requested. email={}, addressId={}, paymentMethod={}", emailId, addressId, paymentMethod);
+    public OrderDTO placeOrder(String emailId, Long addressId, PaymentMethod paymentMethod, String paymentIntentId) {
+        log.info("Order placement requested. email={}, addressId={}, paymentMethod={}, paymentIntentId={}",
+                emailId, addressId, paymentMethod, paymentIntentId);
 
         // Getting User Cart
         Cart cart = cartRepository.findCartByEmail(emailId);
@@ -114,7 +115,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus(OrderStatus.CREATED);
         order.setAddress(address);
 
-        Payment payment = paymentService.createSuccessfulPayment(order, paymentMethod);
+        Payment payment = paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId);
         order.setPayment(payment);
         Order savedOrder = orderRepository.save(order);
         log.info("Order created. orderId={}, email={}, amount={}",
