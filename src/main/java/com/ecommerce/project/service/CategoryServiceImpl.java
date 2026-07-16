@@ -62,6 +62,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    public List<CategoryDTO> getAllCategoriesUnpaginated() {
+        List<Category> categories = categoryRepository.findAll();
+        return categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                .toList();
+    }
+
+    @Override
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         String normalizedCategoryName = categoryDTO.getCategoryName().trim().toLowerCase();
 

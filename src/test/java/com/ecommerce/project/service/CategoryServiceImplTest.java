@@ -21,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -148,6 +149,68 @@ public class CategoryServiceImplTest {
         verify(paginationValidator).validate(eq(0), eq(10), eq("categoryId"), eq("asc"), anyList());
         verify(categoryRepository).findAll(any(Pageable.class));
         verify(modelMapper, never()).map(any(Category.class), eq(CategoryDTO.class));
+    }
+
+    /// getAllCategoriesUnpaginated()
+    @Test
+    void getAllCategoriesUnpaginatedShouldReturnAllCategoriesWithoutPagination() {
+        Category category1 = new Category();
+        category1.setCategoryId(1L);
+        category1.setCategoryName("Books");
+
+        Category category2 = new Category();
+        category2.setCategoryId(2L);
+        category2.setCategoryName("Electronics");
+
+        List<Category> categories = List.of(category1, category2);
+
+        CategoryDTO categoryDTO1 = new CategoryDTO();
+        categoryDTO1.setCategoryId(category1.getCategoryId());
+        categoryDTO1.setCategoryName(category1.getCategoryName());
+
+        CategoryDTO categoryDTO2 = new CategoryDTO();
+        categoryDTO2.setCategoryId(category2.getCategoryId());
+        categoryDTO2.setCategoryName(category2.getCategoryName());
+
+        when(categoryRepository.findAll())
+                .thenReturn(categories);
+
+        when(modelMapper.map(category1, CategoryDTO.class))
+                .thenReturn(categoryDTO1);
+
+        when(modelMapper.map(category2, CategoryDTO.class))
+                .thenReturn(categoryDTO2);
+
+        List<CategoryDTO> result = categoryService.getAllCategoriesUnpaginated();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        CategoryDTO returnedDTO1 = result.getFirst();
+        assertEquals(category1.getCategoryId(), returnedDTO1.getCategoryId());
+        assertEquals(category1.getCategoryName(), returnedDTO1.getCategoryName());
+
+        CategoryDTO returnedDTO2 = result.get(1);
+        assertEquals(category2.getCategoryId(), returnedDTO2.getCategoryId());
+        assertEquals(category2.getCategoryName(), returnedDTO2.getCategoryName());
+
+        verify(categoryRepository).findAll();
+        verify(modelMapper).map(category1, CategoryDTO.class);
+        verify(modelMapper).map(category2, CategoryDTO.class);
+    }
+
+    @Test
+    void getAllCategoriesUnpaginatedShouldReturnEmptyWithoutPaginationWhenNoCategoryExist() {
+        when(categoryRepository.findAll())
+                .thenReturn(new ArrayList<>());
+
+        List<CategoryDTO> result = categoryService.getAllCategoriesUnpaginated();
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+
+        verify(categoryRepository).findAll();
+        verifyNoInteractions(modelMapper);
     }
 
     /// createCategory()

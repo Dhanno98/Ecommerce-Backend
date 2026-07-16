@@ -1,5 +1,6 @@
 package com.ecommerce.project.integration;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
@@ -323,7 +324,7 @@ public class AuthControllerIT {
                 .andExpect(jsonPath("$.content[0].roles.length()").value(1))
                 .andExpect(jsonPath("$.content[0].roles[0]").value(ROLE_SELLER.name()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -349,7 +350,7 @@ public class AuthControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
