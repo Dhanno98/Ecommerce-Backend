@@ -2,6 +2,7 @@ package com.ecommerce.project.service;
 
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerResponse;
+import com.ecommerce.project.payload.SignupResponse;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.UserInfoResponse;
@@ -10,7 +11,7 @@ import org.springframework.security.core.Authentication;
 public interface AuthService {
     UserInfoResponse login(LoginRequest loginRequest);
 
-    void register(SignupRequest signupRequest);
+    SignupResponse register(SignupRequest signupRequest);
 
     String currentUserName(Authentication authentication);
 
