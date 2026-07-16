@@ -10,6 +10,7 @@ import com.ecommerce.project.payload.AddressDTO;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerDTO;
 import com.ecommerce.project.payload.SellerResponse;
+import com.ecommerce.project.payload.SignupResponse;
 import com.ecommerce.project.repositories.AddressRepository;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
@@ -95,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void register(SignupRequest signupRequest) {
+    public SignupResponse register(SignupRequest signupRequest) {
         String normalizedUsername = signupRequest.getUsername().trim().toLowerCase();
         String normalizedEmail = signupRequest.getEmail().trim().toLowerCase();
 
@@ -122,7 +123,9 @@ public class AuthServiceImpl implements AuthService {
 
         user.setRoles(new HashSet<>(Set.of(userRole)));
         userRepository.save(user);
+
         log.info("User registered successfully. userId={}, username={}", user.getUserId(), user.getUserName());
+        return new SignupResponse(user.getUserId(), user.getUserName(), user.getEmail(), "User registered successfully!");
     }
 
     @Override

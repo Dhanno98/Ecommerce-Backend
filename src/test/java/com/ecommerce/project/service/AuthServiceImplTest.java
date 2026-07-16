@@ -10,6 +10,7 @@ import com.ecommerce.project.payload.AddressDTO;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerDTO;
 import com.ecommerce.project.payload.SellerResponse;
+import com.ecommerce.project.payload.SignupResponse;
 import com.ecommerce.project.repositories.AddressRepository;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
@@ -187,7 +188,12 @@ public class AuthServiceImplTest {
         when(roleRepository.findByRoleName(AppRole.ROLE_USER))
                 .thenReturn(Optional.of(role));
 
-        authService.register(signupRequest);
+        SignupResponse result = authService.register(signupRequest);
+
+        assertNotNull(result);
+        assertEquals(normalizedUsername, result.getUsername());
+        assertEquals(normalizedEmail, result.getEmail());
+        assertEquals("User registered successfully!", result.getMessage());
 
         verify(userRepository).existsByUserName(signupRequest.getUsername().trim().toLowerCase());
         verify(userRepository).existsByEmail(signupRequest.getEmail().trim().toLowerCase());

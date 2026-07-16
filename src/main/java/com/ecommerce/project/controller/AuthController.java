@@ -3,6 +3,7 @@ package com.ecommerce.project.controller;
 import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerResponse;
+import com.ecommerce.project.payload.SignupResponse;
 import com.ecommerce.project.security.request.LoginRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.MessageResponse;
@@ -35,9 +36,9 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
-        authService.register(signupRequest);
-        return new ResponseEntity<>(new MessageResponse("User registered successfully!"), HttpStatus.CREATED);
+    public ResponseEntity<SignupResponse> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
+        SignupResponse signupResponse = authService.register(signupRequest);
+        return new ResponseEntity<>(signupResponse, HttpStatus.CREATED);
     }
 
     @GetMapping("/username")

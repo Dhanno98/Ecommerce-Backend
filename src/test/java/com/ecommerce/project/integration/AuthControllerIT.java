@@ -134,6 +134,9 @@ public class AuthControllerIT {
                         .content(json))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.username").value(signupRequest.getUsername().trim().toLowerCase()))
+                .andExpect(jsonPath("$.email").value(signupRequest.getEmail().trim().toLowerCase()))
                 .andExpect(jsonPath("$.message").value("User registered successfully!"));
 
         User userFromDB = userRepository.findByUserName("test user").orElseThrow();
