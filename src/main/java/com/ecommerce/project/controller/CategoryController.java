@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -100,6 +102,12 @@ public class CategoryController {
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
         CategoryResponse categoryResponse = categoryService.getAllCategories(pageNumber, pageSize, sortBy, sortOrder);
         return new ResponseEntity<>(categoryResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/public/categories/all")
+    public ResponseEntity<List<CategoryDTO>> getAllCategoriesUnpaginated() {
+        List<CategoryDTO> categoryDTOS = categoryService.getAllCategoriesUnpaginated();
+        return new ResponseEntity<>(categoryDTOS, HttpStatus.OK);
     }
 
 }

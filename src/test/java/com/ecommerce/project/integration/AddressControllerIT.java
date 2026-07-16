@@ -1,5 +1,6 @@
 package com.ecommerce.project.integration;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.model.Address;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Order;
@@ -199,7 +200,7 @@ public class AddressControllerIT {
                 .andExpect(jsonPath("$.content[1].pincode").value(savedAddress2.getPincode()))
 
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -224,7 +225,7 @@ public class AddressControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));

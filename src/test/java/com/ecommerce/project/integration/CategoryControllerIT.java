@@ -1,5 +1,6 @@
 package com.ecommerce.project.integration;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.model.Category;
 import com.ecommerce.project.model.Product;
 import com.ecommerce.project.payload.CategoryDTO;
@@ -59,7 +60,7 @@ public class CategoryControllerIT {
                 .andExpect(jsonPath("$.content[0].categoryName").value("books"))
                 .andExpect(jsonPath("$.content[0].categoryId").isNumber())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -72,7 +73,7 @@ public class CategoryControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -439,7 +440,7 @@ public class CategoryControllerIT {
                 .andExpect(jsonPath("$.content[0].categoryName").value("books"))
                 .andExpect(jsonPath("$.content[0].categoryId").isNumber())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -453,7 +454,7 @@ public class CategoryControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -505,6 +506,32 @@ public class CategoryControllerIT {
                 .andExpect(jsonPath("$.status").value(401));
 
         assertEquals(1, categoryRepository.count());
+    }
+
+    /// getAllCategoriesUnpaginated()
+    @Test
+    void getAllCategoriesUnpaginatedShouldReturnAllCategoriesWithoutPagination() throws Exception {
+        Category category1 = createCategory("books");
+        Category savedCategory1 = categoryRepository.save(category1);
+
+        Category category2 = createCategory("electronics");
+        Category savedCategory2 = categoryRepository.save(category2);
+
+        mockMvc.perform(get("/api/public/categories/all"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].categoryId").value(savedCategory1.getCategoryId()))
+                .andExpect(jsonPath("$[0].categoryName").value(savedCategory1.getCategoryName()))
+                .andExpect(jsonPath("$[1].categoryId").value(savedCategory2.getCategoryId()))
+                .andExpect(jsonPath("$[1].categoryName").value(savedCategory2.getCategoryName()));
+    }
+
+    @Test
+    void getAllCategoriesUnpaginatedShouldReturnEmptyCategoriesWithoutPagination() throws Exception {
+        mockMvc.perform(get("/api/public/categories/all"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isEmpty());
     }
 
     /// HELPERS

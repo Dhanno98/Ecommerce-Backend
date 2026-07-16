@@ -1,5 +1,6 @@
 package com.ecommerce.project.integration;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.model.Address;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Cart;
@@ -465,7 +466,7 @@ public class OrderControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true))
@@ -550,7 +551,7 @@ public class OrderControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -675,7 +676,7 @@ public class OrderControllerIT {
                 .andExpect(jsonPath("$.content[0].orderItems[0].discount").value(savedOrderItem1.getDiscount().doubleValue()))
 
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -734,7 +735,7 @@ public class OrderControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));

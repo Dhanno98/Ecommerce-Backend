@@ -1,5 +1,6 @@
 package com.ecommerce.project.integration;
 
+import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.model.AppRole;
 import com.ecommerce.project.model.Category;
 import com.ecommerce.project.model.Product;
@@ -81,7 +82,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -94,7 +95,7 @@ public class ProductGetControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -134,7 +135,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct1.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct1.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -178,7 +179,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct1.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct1.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -229,7 +230,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct1.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct1.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -273,7 +274,7 @@ public class ProductGetControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -380,7 +381,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct1.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct1.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -401,7 +402,7 @@ public class ProductGetControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -527,7 +528,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct1.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct1.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -562,7 +563,7 @@ public class ProductGetControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -662,7 +663,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[0].discount").value(savedProduct.getDiscount().doubleValue()))
                 .andExpect(jsonPath("$.content[0].specialPrice").value(savedProduct.getSpecialPrice().doubleValue()))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -760,7 +761,7 @@ public class ProductGetControllerIT {
                 .andExpect(jsonPath("$.content[*].productName", not(hasItem(savedProduct2.getProductName()))))
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.lastPage").value(true));
@@ -793,7 +794,7 @@ public class ProductGetControllerIT {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content").isEmpty())
                 .andExpect(jsonPath("$.pageNumber").value(0))
-                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0))
                 .andExpect(jsonPath("$.lastPage").value(true));
