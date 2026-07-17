@@ -693,6 +693,154 @@ public class OrderServiceImplTest {
         verify(imageUrlUtil, never()).constructImageUrl(orderItem2.getProduct().getImage());
     }
 
+    /// getAllUserOrders()
+    @Test
+    void getAllUserOrdersShouldReturnAllOrdersPlacedByTheLoggedInUser() {
+        User user1 = createUser(1L);
+        User user2 = createUser(2L);
+
+        Category category = createCategory();
+
+        Product product1 = createProduct(user1, category);
+        product1.setProductId(1L);
+
+        Product product2 = createProduct(user2, category);
+        product2.setProductId(2L);
+
+        Address address1 = createAddress(user1);
+        Address address2 = createAddress(user2);
+
+        Payment payment1 = createPayment(PaymentMethod.CARD);
+        Payment payment2 = createPayment(PaymentMethod.CARD);
+
+        Order order1 = createOrder(user1, address1, payment1);
+
+        OrderItem orderItem1 = createOrderItem(product1);
+        orderItem1.setOrder(order1);
+
+        List<OrderItem> orderItems1 = List.of(orderItem1);
+        order1.setOrderItems(orderItems1);
+        order1.setTotalAmount(orderItems1.getFirst().getOrderedProductPrice().multiply(BigDecimal.valueOf(orderItem1.getQuantity())));
+
+        Order order2 = createOrder(user2, address2, payment2);
+
+        OrderItem orderItem2 = createOrderItem(product2);
+        orderItem2.setOrder(order2);
+
+        List<OrderItem> orderItems2 = List.of(orderItem2);
+        order2.setOrderItems(orderItems2);
+        order2.setTotalAmount(orderItems2.getFirst().getOrderedProductPrice().multiply(BigDecimal.valueOf(orderItem2.getQuantity())));
+
+        List<Order> orders = List.of(order1);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Order> orderPage = new PageImpl<>(orders, pageable, orders.size());
+
+        OrderItemResponseDTO orderItemResponseDTO = createOrderItemResponseDTO(orderItem1);
+        List<OrderItemResponseDTO> orderItemResponseDTOS = List.of(orderItemResponseDTO);
+
+        PaymentDTO paymentDTO = createPaymentDTO(payment1);
+
+        OrderDTO orderDTO = createOrderDTO(order1);
+        orderDTO.setOrderItems(orderItemResponseDTOS);
+        orderDTO.setPayment(paymentDTO);
+        orderDTO.setAddressId(address1.getAddressId());
+
+        doNothing()
+                .when(paginationValidator)
+                .validate(anyInt(), anyInt(), anyString(), anyString(), anyList());
+
+        when(authUtil.loggedInEmail())
+                .thenReturn(user1.getEmail());
+
+        when(orderRepository.findUserOrdersByEmail(eq(user1.getEmail()), any(Pageable.class)))
+                .thenReturn(orderPage);
+
+        when(modelMapper.map(order1, OrderDTO.class))
+                .thenReturn(orderDTO);
+
+        when(modelMapper.map(orderItem1, OrderItemResponseDTO.class))
+                .thenReturn(orderItemResponseDTO);
+
+        when(imageUrlUtil.constructImageUrl(orderItem1.getProduct().getImage()))
+                .thenReturn("http://localhost/images/" + orderItem1.getProduct().getImage());
+
+        OrderResponse result = orderService.getAllUserOrders(0, 10, "orderId", "asc");
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals(1L, result.getTotalElements());
+        assertEquals(0, result.getPageNumber());
+        assertEquals(1, result.getTotalPages());
+        assertTrue(result.isLastPage());
+
+        OrderDTO returnedOrder = result.getContent().getFirst();
+        assertEquals(order1.getTotalAmount(), returnedOrder.getTotalAmount());
+        assertEquals(order1.getOrderStatus(), returnedOrder.getOrderStatus());
+        assertEquals(order1.getOrderId(), returnedOrder.getOrderId());
+        assertEquals(order1.getEmail(), returnedOrder.getEmail());
+        assertEquals(address1.getAddressId(), returnedOrder.getAddressId());
+
+        OrderItemResponseDTO item = returnedOrder.getOrderItems().getFirst();
+        assertEquals(orderItem1.getOrderItemId(), item.getOrderItemId());
+        assertEquals(orderItem1.getProduct().getProductId(), item.getProductId());
+        assertEquals(orderItem1.getQuantity(), item.getQuantityOrdered());
+        assertEquals(orderItem1.getOrderedProductPrice(), item.getOrderedProductPrice());
+        assertEquals(orderItem1.getDiscount(), item.getDiscount());
+
+        assertEquals(product1.getProductName(), item.getProductName());
+        assertEquals(product1.getDescription(), item.getDescription());
+        assertEquals("http://localhost/images/" + product1.getImage(), item.getImage());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(orderRepository).findUserOrdersByEmail(eq(user1.getEmail()), pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+
+        assertEquals(0, captured.getPageNumber());
+        assertEquals(10, captured.getPageSize());
+
+        Sort.Order sortOrder = captured.getSort().iterator().next();
+        assertEquals("orderId", sortOrder.getProperty());
+        assertEquals(Sort.Direction.ASC, sortOrder.getDirection());
+
+        verify(paginationValidator).validate(eq(0), eq(10), eq("orderId"), eq("asc"), anyList());
+        verify(authUtil).loggedInEmail();
+        verify(modelMapper).map(order1, OrderDTO.class);
+        verify(modelMapper).map(orderItem1, OrderItemResponseDTO.class);
+        verify(imageUrlUtil).constructImageUrl(orderItem1.getProduct().getImage());
+    }
+
+    @Test
+    void getAllUserOrdersShouldReturnEmptyResponseIfUserHasNoOrders() {
+        User user1 = createUser(1L);
+
+        Page<Order> emptyPage= Page.empty();
+
+        doNothing()
+                .when(paginationValidator)
+                .validate(anyInt(), anyInt(), anyString(), anyString(), anyList());
+
+        when(authUtil.loggedInEmail())
+                .thenReturn(user1.getEmail());
+
+        when(orderRepository.findUserOrdersByEmail(eq(user1.getEmail()), any(Pageable.class)))
+                .thenReturn(emptyPage);
+
+        OrderResponse result = orderService.getAllUserOrders(0, 10, "orderId", "asc");
+
+        assertTrue(result.getContent().isEmpty());
+        assertEquals(0L, result.getTotalElements());
+        assertEquals(0, result.getPageNumber());
+        assertEquals(1, result.getTotalPages());
+        assertTrue(result.isLastPage());
+
+        verify(paginationValidator).validate(eq(0), eq(10), eq("orderId"), eq("asc"), anyList());
+        verify(orderRepository).findUserOrdersByEmail(eq(user1.getEmail()), any(Pageable.class));
+        verify(modelMapper, never()).map(any(Order.class), eq(OrderDTO.class));
+        verify(modelMapper, never()).map(any(OrderItem.class), eq(OrderItemResponseDTO.class));
+        verify(imageUrlUtil, never()).constructImageUrl(any(String.class));
+    }
+
     /// HELPERS
     private Category createCategory() {
         Category category = new Category();

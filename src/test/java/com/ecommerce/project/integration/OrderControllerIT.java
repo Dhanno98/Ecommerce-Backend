@@ -793,6 +793,182 @@ public class OrderControllerIT {
                 .andExpect(jsonPath("$.status").value(401));
     }
 
+    /// getAllUserOrders()
+    @Test
+    void getAllUserOrdersShouldAllOrdersPlacedByTheUser() throws Exception {
+        Role roleUser = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
+        Role roleSeller = roleRepository.findByRoleName(AppRole.ROLE_SELLER).orElseThrow();
+
+        User user1 = createUser("Test User 1", "user1@gmail.com", "password");
+        user1.getRoles().add(roleUser);
+        User savedUser1 = userRepository.save(user1);
+
+        User user2 = createUser("Test User 2", "user2@gmail.com", "password");
+        user2.getRoles().add(roleUser);
+        User savedUser2 = userRepository.save(user2);
+
+        Address address1 = createAddress(savedUser1);
+        Address savedAddress1 = addressRepository.save(address1);
+
+        Address address2 = createAddress(savedUser2);
+        Address savedAddress2 = addressRepository.save(address2);
+
+        UserDetailsImpl userDetails = UserDetailsImpl.build(savedUser1);
+
+        User seller = createUser("Test Seller", "seller@gmail.com", "password");
+        seller.getRoles().add(roleSeller);
+        User savedSeller = userRepository.save(seller);
+
+        Category category = createCategory("books");
+        Category savedCategory = categoryRepository.save(category);
+
+        Product product1 = createProduct(savedSeller, savedCategory, "Harry Potter 3", "default.png",
+                "Harry Potter and the Prisoner of Azkaban", 10,
+                new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
+        Product savedProduct1 = productRepository.save(product1);
+
+        Product product2 = createProduct(savedSeller, savedCategory, "Lord of the Rings", "default.png",
+                "Lord of the Rings: Return of the King", 10,
+                new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
+        Product savedProduct2 = productRepository.save(product2);
+
+        Payment payment1 = createPayment(PaymentMethod.CARD, "MOCK1");
+        Payment savedPayment1 = paymentRepository.save(payment1);
+
+        Order order1 = createOrder(savedUser1, savedAddress1, savedPayment1);
+        Order savedOrder1 = orderRepository.save(order1);
+
+        OrderItem orderItem1 = createOrderItem(savedProduct1);
+        orderItem1.setQuantity(3);
+        orderItem1.setOrder(savedOrder1);
+        OrderItem savedOrderItem1 = orderItemRepository.save(orderItem1);
+
+        BigDecimal amount1 = savedOrderItem1.getOrderedProductPrice()
+                .multiply(BigDecimal.valueOf(savedOrderItem1.getQuantity()));
+
+        savedOrder1.getOrderItems().add(savedOrderItem1);
+        savedOrder1.setTotalAmount(amount1);
+        orderRepository.save(savedOrder1);
+
+        Payment payment2 = createPayment(PaymentMethod.CARD, "MOCK2");
+        Payment savedPayment2 = paymentRepository.save(payment2);
+
+        Order order2 = createOrder(savedUser2, savedAddress2, savedPayment2);
+        Order savedOrder2 = orderRepository.save(order2);
+
+        OrderItem orderItem2 = createOrderItem(savedProduct2);
+        orderItem2.setQuantity(4);
+        orderItem2.setOrder(savedOrder2);
+        OrderItem savedOrderItem2 = orderItemRepository.save(orderItem2);
+
+        BigDecimal amount2 = savedOrderItem2.getOrderedProductPrice().multiply(BigDecimal.valueOf(savedOrderItem2.getQuantity()));
+
+        savedOrder2.getOrderItems().add(savedOrderItem2);
+        savedOrder2.setTotalAmount(amount2);
+        orderRepository.save(savedOrder2);
+
+        mockMvc.perform(get("/api/user/orders")
+                        .with(user(userDetails))
+                        .param("sortBy", "orderId")
+                        .param("sortOrder", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.lastPage").value(true))
+
+                .andExpect(jsonPath("$.content.length()").value(1))
+
+                .andExpect(jsonPath("$.content[0].orderId").value(savedOrder1.getOrderId()))
+                .andExpect(jsonPath("$.content[0].email").value(savedUser1.getEmail()))
+                .andExpect(jsonPath("$.content[0].totalAmount").value(amount1.doubleValue()))
+                .andExpect(jsonPath("$.content[0].orderDate").exists())
+                .andExpect(jsonPath("$.content[0].orderStatus").value("CREATED"))
+                .andExpect(jsonPath("$.content[0].addressId").value(savedAddress1.getAddressId()))
+
+                .andExpect(jsonPath("$.content[0].payment.paymentId").value(savedPayment1.getPaymentId()))
+                .andExpect(jsonPath("$.content[0].payment.paymentMethod").value(savedPayment1.getPaymentMethod().name()))
+                .andExpect(jsonPath("$.content[0].payment.pgStatus").value(savedPayment1.getPgStatus().name()))
+
+                .andExpect(jsonPath("$.content[0].orderItems.length()").value(1))
+
+                .andExpect(jsonPath("$.content[0].orderItems[0].productId").value(savedProduct1.getProductId()))
+                .andExpect(jsonPath("$.content[0].orderItems[0].productName").value(savedProduct1.getProductName()))
+                .andExpect(jsonPath("$.content[0].orderItems[0].quantityOrdered").value(savedOrderItem1.getQuantity()))
+                .andExpect(jsonPath("$.content[0].orderItems[0].orderedProductPrice").value(savedOrderItem1.getOrderedProductPrice().doubleValue()));
+    }
+
+    @Test
+    void getAllUserOrdersShouldReturnEmptyPageIfNoOrderExists() throws Exception {
+        Role roleUser = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
+        Role roleSeller = roleRepository.findByRoleName(AppRole.ROLE_SELLER).orElseThrow();
+
+        User user1 = createUser("Test User 1", "user1@gmail.com", "password");
+        user1.getRoles().add(roleUser);
+        User savedUser1 = userRepository.save(user1);
+
+        User user2 = createUser("Test User 2", "user2@gmail.com", "password");
+        user2.getRoles().add(roleUser);
+        User savedUser2 = userRepository.save(user2);
+
+        Address address1 = createAddress(savedUser1);
+        addressRepository.save(address1);
+
+        Address address2 = createAddress(savedUser2);
+        Address savedAddress2 = addressRepository.save(address2);
+
+        UserDetailsImpl userDetails = UserDetailsImpl.build(savedUser1);
+
+        User seller = createUser("Test Seller", "seller@gmail.com", "password");
+        seller.getRoles().add(roleSeller);
+        User savedSeller = userRepository.save(seller);
+
+        Category category = createCategory("books");
+        Category savedCategory = categoryRepository.save(category);
+
+        Product product1 = createProduct(savedSeller, savedCategory, "Harry Potter 3", "default.png",
+                "Harry Potter and the Prisoner of Azkaban", 10,
+                new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
+        productRepository.save(product1);
+
+        Product product2 = createProduct(savedSeller, savedCategory, "Lord of the Rings", "default.png",
+                "Lord of the Rings: Return of the King", 10,
+                new BigDecimal("100"), new BigDecimal("10"), new BigDecimal("90"));
+        Product savedProduct2 = productRepository.save(product2);
+
+        Payment payment2 = createPayment(PaymentMethod.CARD, "MOCK2");
+        Payment savedPayment2 = paymentRepository.save(payment2);
+
+        Order order2 = createOrder(savedUser2, savedAddress2, savedPayment2);
+        Order savedOrder2 = orderRepository.save(order2);
+
+        OrderItem orderItem2 = createOrderItem(savedProduct2);
+        orderItem2.setQuantity(4);
+        orderItem2.setOrder(savedOrder2);
+        OrderItem savedOrderItem2 = orderItemRepository.save(orderItem2);
+
+        BigDecimal amount2 = savedOrderItem2.getOrderedProductPrice().multiply(BigDecimal.valueOf(savedOrderItem2.getQuantity()));
+
+        savedOrder2.getOrderItems().add(savedOrderItem2);
+        savedOrder2.setTotalAmount(amount2);
+        orderRepository.save(savedOrder2);
+
+        mockMvc.perform(get("/api/user/orders")
+                        .with(user(userDetails))
+                        .param("sortBy", "orderId")
+                        .param("sortOrder", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(AppConstants.PAGE_SIZE))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0))
+                .andExpect(jsonPath("$.lastPage").value(true));
+    }
+
     /// updateOrderStatus()
     @Test
     void updateOrderStatusShouldSuccessfullyUpdateOrderStatus() throws Exception {

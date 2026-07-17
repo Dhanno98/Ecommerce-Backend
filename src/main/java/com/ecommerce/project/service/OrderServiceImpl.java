@@ -266,6 +266,44 @@ public class OrderServiceImpl implements OrderService {
         return sellerOrderResponse;
     }
 
+    @Override
+        public OrderResponse getAllUserOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
+
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+
+        String email = authUtil.loggedInEmail();
+
+        Page<Order> pageOrders = orderRepository.findUserOrdersByEmail(email, pageDetails);
+
+        List<Order> orders = pageOrders.getContent();
+
+        List<OrderDTO> orderDTOS = orders.stream()
+                .map(order -> {
+                    OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+                    orderDTO.setOrderItems(
+                            order.getOrderItems()
+                                    .stream()
+                                    .map(this::mapToOrderItemResponseDTO)
+                                    .toList());
+                    return orderDTO;
+                })
+                .toList();
+
+        OrderResponse orderResponse = new OrderResponse();
+        orderResponse.setContent(orderDTOS);
+        orderResponse.setPageNumber(pageOrders.getNumber());
+        orderResponse.setPageSize(pageOrders.getSize());
+        orderResponse.setTotalElements(pageOrders.getTotalElements());
+        orderResponse.setTotalPages(pageOrders.getTotalPages());
+        orderResponse.setLastPage(pageOrders.isLast());
+
+        return orderResponse;
+    }
+
     private OrderItemResponseDTO mapToOrderItemResponseDTO(OrderItem item) {
         OrderItemResponseDTO dto = modelMapper.map(item, OrderItemResponseDTO.class);
         dto.setProductId(item.getProduct().getProductId());
