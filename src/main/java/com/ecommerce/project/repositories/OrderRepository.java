@@ -36,4 +36,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COUNT(o) > 0 FROM Order o WHERE o.address.addressId = ?1")
     boolean existsByAddressId(Long addressId);
+
+    Page<Order> findUserOrdersByEmail(String email, Pageable pageDetails);
 }
