@@ -221,7 +221,7 @@ The application uses PostgreSQL as its relational database. The schema is design
 
 <p align="center">
   <img
-    src="docs/images/database-er-diagram.svg"
+    src="docs/readme-images/database-er-diagram.svg"
     alt="Database ER Diagram"
     width="700">
 </p>
@@ -407,7 +407,7 @@ The API documentation is automatically generated from the application's source c
 
 <p align="center">
   <img
-    src="docs/images/swagger-ui.png"
+    src="docs/readme-images/swagger-ui.png"
     alt="Swagger UI"
     width="900">
 </p>
