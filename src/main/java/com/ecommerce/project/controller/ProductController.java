@@ -5,6 +5,7 @@ import com.ecommerce.project.payload.CreateProductRequest;
 import com.ecommerce.project.payload.ProductDTO;
 import com.ecommerce.project.payload.ProductResponse;
 import com.ecommerce.project.service.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import java.io.IOException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Tag(name = "Product APIs", description = "APIs for managing products")
 public class ProductController {
 
     private final ProductService productService;

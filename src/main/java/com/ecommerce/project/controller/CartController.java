@@ -2,6 +2,7 @@ package com.ecommerce.project.controller;
 
 import com.ecommerce.project.payload.CartDTO;
 import com.ecommerce.project.service.CartService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Tag(name = "Cart APIs", description = "APIs for managing carts")
 public class CartController {
 
     private final CartService cartService;

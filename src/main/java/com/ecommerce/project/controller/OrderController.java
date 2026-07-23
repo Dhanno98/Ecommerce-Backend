@@ -12,6 +12,7 @@ import com.ecommerce.project.service.StripeService;
 import com.ecommerce.project.util.AuthUtil;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Tag(name = "Order APIs", description = "APIs for managing orders")
 public class OrderController {
 
     private final OrderService orderService;
