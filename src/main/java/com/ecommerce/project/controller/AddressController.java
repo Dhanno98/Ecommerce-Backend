@@ -4,6 +4,7 @@ import com.ecommerce.project.config.AppConstants;
 import com.ecommerce.project.payload.AddressDTO;
 import com.ecommerce.project.payload.AddressResponse;
 import com.ecommerce.project.service.AddressService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
+@Tag(name = "Address APIs", description = "APIs for managing addresses")
 public class AddressController {
 
     private final AddressService addressService;
