@@ -5,10 +5,14 @@ import com.ecommerce.project.payload.PromoteRoleRequestDTO;
 import com.ecommerce.project.payload.SellerResponse;
 import com.ecommerce.project.payload.SignupResponse;
 import com.ecommerce.project.security.request.LoginRequest;
+import com.ecommerce.project.security.request.LogoutRequest;
+import com.ecommerce.project.security.request.RefreshTokenRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.response.MessageResponse;
+import com.ecommerce.project.security.response.RefreshTokenResponse;
 import com.ecommerce.project.security.response.UserInfoResponse;
 import com.ecommerce.project.service.AuthService;
+import com.ecommerce.project.service.RefreshTokenService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +34,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
     public ResponseEntity<UserInfoResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -55,8 +61,15 @@ public class AuthController {
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<MessageResponse> signoutUser() {
+    public ResponseEntity<MessageResponse> signoutUser(@Valid @RequestBody LogoutRequest logoutRequest) {
+        authService.logoutUser(logoutRequest.getRefreshToken());
         return ResponseEntity.ok().body(new MessageResponse("You've been signed out!"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+        RefreshTokenResponse response = refreshTokenService.rotateRefreshToken(refreshTokenRequest.getRefreshToken());
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/admin/sellers")

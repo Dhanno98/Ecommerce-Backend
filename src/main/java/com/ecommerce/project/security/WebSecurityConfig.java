@@ -85,7 +85,9 @@ public class WebSecurityConfig {
 
         http.authorizeHttpRequests(auth ->
                 auth.requestMatchers("/api/auth/signin").permitAll()
+                        .requestMatchers("/api/auth/refresh").permitAll()
                         .requestMatchers("/api/auth/signup").permitAll()
+                        .requestMatchers("/api/auth/signout").permitAll()
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

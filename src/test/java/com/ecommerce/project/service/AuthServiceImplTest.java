@@ -90,6 +90,9 @@ public class AuthServiceImplTest {
     @Mock
     ModelMapper modelMapper;
 
+    @Mock
+    RefreshTokenService refreshTokenService;
+
     /// login()
     @Test
     void loginShouldReturnUserInfoWhenCredentialsAreValid() {
@@ -112,12 +115,16 @@ public class AuthServiceImplTest {
         );
 
         String jwtToken = "dummyJwtToken";
+        String refreshToken = "dummyRefreshToken";
 
         when(authenticationManager.authenticate(any(Authentication.class)))
                 .thenReturn(authentication);
 
         when(jwtUtils.generateTokenFromUsername(userDetails.getUsername()))
                 .thenReturn(jwtToken);
+
+        when(refreshTokenService.generateRefreshToken(userDetails.getUsername()))
+                .thenReturn(refreshToken);
 
         UserInfoResponse result = authService.login(loginRequest);
 
@@ -127,6 +134,7 @@ public class AuthServiceImplTest {
         assertEquals(user.getEmail(), result.getEmail());
 
         assertEquals(jwtToken, result.getJwtToken());
+        assertEquals(refreshToken, result.getRefreshToken());
         assertIterableEquals(List.of("ROLE_ADMIN", "ROLE_USER"), result.getRoles().stream().sorted().toList());
 
         try {
@@ -142,6 +150,7 @@ public class AuthServiceImplTest {
         assertEquals(loginRequest.getPassword(), token.getCredentials());
 
         verify(jwtUtils).generateTokenFromUsername(userDetails.getUsername());
+        verify(refreshTokenService).generateRefreshToken(userDetails.getUsername());
     }
 
     @Test

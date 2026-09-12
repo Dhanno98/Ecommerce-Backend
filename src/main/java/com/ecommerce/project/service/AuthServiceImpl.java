@@ -64,6 +64,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final PaginationValidator paginationValidator;
 
+    private final RefreshTokenService refreshTokenService;
+
     private static final List<String> ALLOWED_SORT_FIELDS = List.of("userId", "userName", "email");
 
     @Override
@@ -84,6 +86,7 @@ public class AuthServiceImpl implements AuthService {
 
         String username = userDetails.getUsername();
         String jwtToken = jwtUtils.generateTokenFromUsername(username);
+        String refreshToken = refreshTokenService.generateRefreshToken(username);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
@@ -92,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Login successful. userId={}, username={}", userDetails.getId(), userDetails.getUsername());
 
         return new UserInfoResponse(userDetails.getId(),
-                userDetails.getUsername(), roles, userDetails.getEmail(), jwtToken);
+                userDetails.getUsername(), roles, userDetails.getEmail(), jwtToken, refreshToken);
     }
 
     @Override
@@ -244,5 +247,10 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
         log.info("Role promoted successfully. userId={}, role={}", userId, appRole);
+    }
+
+    @Override
+    public void logoutUser(String rawRefreshToken) {
+        refreshTokenService.revokeRefreshToken(rawRefreshToken);
     }
 }
