@@ -1,12 +1,15 @@
 package com.ecommerce.project.integration;
 
 import com.ecommerce.project.config.AppConstants;
+import com.ecommerce.project.model.RefreshToken;
 import com.ecommerce.project.model.Role;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.payload.PromoteRoleRequestDTO;
+import com.ecommerce.project.repositories.RefreshTokenRepository;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
 import com.ecommerce.project.security.request.LoginRequest;
+import com.ecommerce.project.security.request.LogoutRequest;
 import com.ecommerce.project.security.request.SignupRequest;
 import com.ecommerce.project.security.services.UserDetailsImpl;
 import jakarta.transaction.Transactional;
@@ -20,7 +23,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HashSet;
+import java.util.HexFormat;
 
 import static com.ecommerce.project.model.AppRole.ROLE_ADMIN;
 import static com.ecommerce.project.model.AppRole.ROLE_SELLER;
@@ -56,6 +64,9 @@ public class AuthControllerIT {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     /// login()
     @Test
     void loginShouldSuccessfullyLoginUserWithValidCredentials() throws Exception {
@@ -78,6 +89,8 @@ public class AuthControllerIT {
                 .andExpect(jsonPath("$.id").value(savedUser.getUserId()))
                 .andExpect(jsonPath("$.jwtToken").isNotEmpty())
                 .andExpect(jsonPath("$.jwtToken").isString())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isString())
                 .andExpect(jsonPath("$.roles.length()").value(1))
                 .andExpect(jsonPath("$.roles[0]").value(ROLE_USER.name()))
                 .andExpect(jsonPath("$.username").value(savedUser.getUserName()));
@@ -268,31 +281,133 @@ public class AuthControllerIT {
 
     /// signoutUser()
     @Test
-    void signoutUserShouldSuccessfullySignoutTheLoggedInUser() throws Exception {
+    void signoutUserShouldSuccessfullySignoutTheUser() throws Exception {
         Role savedRole = roleRepository.findByRoleName(ROLE_USER).orElseThrow();
 
-        User user = createUser("test user", "user@gmail.com", "password");
+        User user = createUser("Test User", "user@gmail.com", "password");
         user.setPassword(passwordEncoder.encode("password"));
         user.getRoles().add(savedRole);
         User savedUser = userRepository.save(user);
 
-        UserDetailsImpl userDetails = UserDetailsImpl.build(savedUser);
+        String rawRefreshToken = "dummyRefreshToken";
+        String tokenHash = hashRawToken(rawRefreshToken);
+
+        Instant createdAt = Instant.now();
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setTokenHash(tokenHash);
+        refreshToken.setUser(savedUser);
+        refreshToken.setCreatedAt(createdAt);
+        refreshToken.setExpiryDate(createdAt.plusMillis(3600000));
+        refreshToken.setRevoked(false);
+
+        refreshTokenRepository.save(refreshToken);
+
+        LogoutRequest logoutRequest = new LogoutRequest();
+        logoutRequest.setRefreshToken(rawRefreshToken);
+        String json = objectMapper.writeValueAsString(logoutRequest);
 
         mockMvc.perform(post("/api/auth/signout")
-                        .with(user(userDetails)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("You've been signed out!"));
+
+        RefreshToken revokedToken = refreshTokenRepository.findByTokenHash(tokenHash).orElseThrow();
+        assertTrue(revokedToken.isRevoked());
     }
 
     @Test
-    void signoutUserShouldReturnUnauthorizedIfUserIsNotAuthenticated() throws Exception {
-        mockMvc.perform(post("/api/auth/signout"))
-                .andExpect(status().isUnauthorized())
+    void signoutUserShouldReturnApiExceptionIfRefreshTokenIsNotValid() throws Exception {
+        String rawRefreshToken = "invalidRefreshToken";
+
+        LogoutRequest logoutRequest = new LogoutRequest();
+        logoutRequest.setRefreshToken(rawRefreshToken);
+        String json = objectMapper.writeValueAsString(logoutRequest);
+
+        mockMvc.perform(post("/api/auth/signout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message").value("Full authentication is required to access this resource"))
-                .andExpect(jsonPath("$.status").value(401));
+                .andExpect(jsonPath("$.message").value("Refresh token is invalid!"));
+    }
+
+    @Test
+    void signoutUserShouldSuccessfullySignoutTheUserIfRefreshTokenIsAlreadyRevoked() throws Exception {
+        Role savedRole = roleRepository.findByRoleName(ROLE_USER).orElseThrow();
+
+        User user = createUser("Test User", "user@gmail.com", "password");
+        user.setPassword(passwordEncoder.encode("password"));
+        user.getRoles().add(savedRole);
+        User savedUser = userRepository.save(user);
+
+        String rawRefreshToken = "dummyRefreshToken";
+        String tokenHash = hashRawToken(rawRefreshToken);
+
+        Instant createdAt = Instant.now();
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setTokenHash(tokenHash);
+        refreshToken.setUser(savedUser);
+        refreshToken.setCreatedAt(createdAt);
+        refreshToken.setExpiryDate(createdAt.plusMillis(3600000));
+        refreshToken.setRevoked(true);
+
+        refreshTokenRepository.save(refreshToken);
+
+        LogoutRequest logoutRequest = new LogoutRequest();
+        logoutRequest.setRefreshToken(rawRefreshToken);
+        String json = objectMapper.writeValueAsString(logoutRequest);
+
+        mockMvc.perform(post("/api/auth/signout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("You've been signed out!"));
+
+        RefreshToken revokedToken = refreshTokenRepository.findByTokenHash(tokenHash).orElseThrow();
+        assertTrue(revokedToken.isRevoked());
+    }
+
+    @Test
+    void signoutUserShouldSuccessfullySignoutTheUserIfRefreshTokenIsAlreadyExpired() throws Exception {
+        Role savedRole = roleRepository.findByRoleName(ROLE_USER).orElseThrow();
+
+        User user = createUser("Test User", "user@gmail.com", "password");
+        user.setPassword(passwordEncoder.encode("password"));
+        user.getRoles().add(savedRole);
+        User savedUser = userRepository.save(user);
+
+        String rawRefreshToken = "dummyRefreshToken";
+        String tokenHash = hashRawToken(rawRefreshToken);
+
+        Instant createdAt = Instant.now();
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setTokenHash(tokenHash);
+        refreshToken.setUser(savedUser);
+        refreshToken.setCreatedAt(createdAt);
+        refreshToken.setExpiryDate(createdAt.minusMillis(3600000));
+        refreshToken.setRevoked(false);
+
+        refreshTokenRepository.save(refreshToken);
+
+        LogoutRequest logoutRequest = new LogoutRequest();
+        logoutRequest.setRefreshToken(rawRefreshToken);
+        String json = objectMapper.writeValueAsString(logoutRequest);
+
+        mockMvc.perform(post("/api/auth/signout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("You've been signed out!"));
+
+        RefreshToken revokedToken = refreshTokenRepository.findByTokenHash(tokenHash).orElseThrow();
+        assertFalse(revokedToken.isRevoked());
     }
 
     /// getAllSellers()
@@ -655,5 +770,15 @@ public class AuthControllerIT {
         signupRequest.setEmail(email);
         signupRequest.setPassword(password);
         return signupRequest;
+    }
+
+    private String hashRawToken(String rawToken) {
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = messageDigest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
     }
 }
