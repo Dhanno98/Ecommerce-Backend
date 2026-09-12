@@ -247,43 +247,85 @@ The application uses PostgreSQL as its relational database. The schema is design
 
 ## Authentication & Authorization
 
-The application implements stateless authentication using JSON Web Tokens (JWT) together with Spring Security. New users can register through the signup endpoint, after which passwords are securely hashed using BCrypt before being stored in the database. Registered users authenticate by signing in with their credentials, and upon successful authentication the backend generates a signed JWT.
+The application implements stateless authentication using JSON Web Tokens (JWT) together with Spring Security and a persistent Refresh Token mechanism.
 
-For all protected endpoints, clients include the JWT in the `Authorization` header using the Bearer authentication scheme. Every incoming request passes through a custom JWT authentication filter, where the token is validated and the authenticated user's identity and roles are loaded into the Spring Security context. Access to protected endpoints is then enforced using Spring Security request matchers based on the user's assigned roles. The application supports three user roles: Customer (ROLE_USER), Seller (ROLE_SELLER), and Admin (ROLE_ADMIN).
+New users can register through the signup endpoint, after which passwords are securely hashed using BCrypt before being stored in the database. Registered users authenticate by signing in with their credentials. Upon successful authentication, the backend generates a short-lived access JWT and a longer-lived Refresh Token.
+
+The access JWT is used to authenticate requests to protected endpoints, while the refresh token is used to obtain a new access JWT when the current access token expires or is no longer usable. Refresh tokens are opaque, cryptographically secure random values. Only their SHA-256 hashes are stored in the database; the raw refresh token is returned to the client.
+
+For all protected endpoints, clients include the access JWT in the `Authorization` header using the Bearer authentication scheme. Every incoming request passes through a custom JWT authentication filter, where the token is validated and the authenticated user's identity and roles are loaded into the Spring Security context. Access to protected endpoints is then enforced using Spring Security request matchers based on the user's assigned roles.
+
+The application supports three user roles: Customer (`ROLE_USER`), Seller (`ROLE_SELLER`), and Admin (`ROLE_ADMIN`).
+
+### Token Lifecycle
+
+The application uses two types of tokens with different responsibilities:
+
+| Token | Purpose | Lifetime | Storage |
+|-------|---------|----------|---------|
+| **Access JWT** | Authenticates requests to protected API endpoints | 15 minutes | Held by the client; not persisted in the database |
+| **Refresh Token** | Obtains a new access JWT and maintains the authenticated session | 1 hour | SHA-256 hash persisted in PostgreSQL |
+
+Access tokens are intentionally short-lived to reduce the impact of token compromise. Refresh tokens have a longer lifetime and are persisted so that they can be individually validated, rotated, and revoked.
+
+Refresh tokens are associated with their respective users, allowing multiple active refresh-token records for different sessions or devices.
 
 ### Login Flow
 
 ```mermaid
-flowchart LR
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant AuthService
+    participant AuthenticationManager
+    participant DaoAuthenticationProvider
+    participant UserDetailsService
+    participant UserRepository
+    participant PostgreSQL
+    participant JwtUtils
+    participant RefreshTokenService
+    participant RefreshTokenRepository
 
-    subgraph Client
-        A["User submits<br/>username & password"]
-    end
+    Client->>AuthController: POST /api/auth/signin<br/>username + password
+    AuthController->>AuthService: login(credentials)
+    AuthService->>AuthenticationManager: authenticate(credentials)
+    AuthenticationManager->>DaoAuthenticationProvider: authenticate()
+    DaoAuthenticationProvider->>UserDetailsService: loadUserByUsername()
+    UserDetailsService->>UserRepository: findByUserName()
+    UserRepository->>PostgreSQL: Query user
+    PostgreSQL-->>UserRepository: User data
+    UserRepository-->>UserDetailsService: User
+    UserDetailsService-->>DaoAuthenticationProvider: UserDetails
 
-    subgraph Backend
-        B["AuthController"]
-        C["AuthenticationManager"]
-        D["DaoAuthenticationProvider"]
-        E["UserDetailsServiceImpl"]
-        F["UserRepository"]
-        G[("PostgreSQL")]
-        H["BCrypt Password Verification"]
-        I["JwtUtils"]
-    end
+    DaoAuthenticationProvider->>DaoAuthenticationProvider: BCrypt password verification
+    DaoAuthenticationProvider-->>AuthenticationManager: Authenticated Authentication
+    AuthenticationManager-->>AuthService: Authentication
 
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> F
-    F --> E
-    E --> H
-    H --> I
-    I --> J["JWT Token"]
-    J --> K["UserInfoResponse"]
+    AuthService->>JwtUtils: generateTokenFromUsername()
+    JwtUtils-->>AuthService: Access JWT
+
+    AuthService->>RefreshTokenService: generateRefreshToken(username)
+    RefreshTokenService->>RefreshTokenService: Generate secure random token
+    RefreshTokenService->>RefreshTokenService: SHA-256 hash
+    RefreshTokenService->>RefreshTokenRepository: save(refreshToken)
+    RefreshTokenRepository->>PostgreSQL: INSERT refresh token
+    PostgreSQL-->>RefreshTokenRepository: Saved
+    RefreshTokenRepository-->>RefreshTokenService: RefreshToken
+    RefreshTokenService-->>AuthService: Raw Refresh Token
+
+    AuthService-->>AuthController: UserInfoResponse
+    AuthController-->>Client: Access JWT + Refresh Token
 ```
+
+After successful authentication:
+
+1. `AuthenticationManager` authenticates the supplied username and password.
+2. `DaoAuthenticationProvider` uses `UserDetailsServiceImpl` and BCrypt password verification.
+3. `JwtUtils` generates a short-lived access JWT.
+4. `RefreshTokenService` generates a cryptographically secure opaque refresh token.
+5. The refresh token is hashed using SHA-256.
+6. Only the hash is persisted in the `refresh_tokens` table along with the associated user, creation time, expiration time, and revocation status.
+7. The raw refresh token and access JWT are returned to the client in `UserInfoResponse`.
 
 ### Authenticated Request Flow
 
@@ -291,7 +333,7 @@ flowchart LR
 flowchart LR
 
     subgraph Client
-        A["HTTP Request<br/>Bearer JWT"]
+        A["HTTP Request<br/>Bearer Access JWT"]
     end
 
     subgraph Security
@@ -319,28 +361,178 @@ flowchart LR
     H --> I
     I --> J
 ```
+For a protected request:
+
+1. The client sends the access JWT in the `Authorization: Bearer <JWT>` header.
+2. `AuthTokenFilter` extracts the JWT.
+3. `JwtUtils` validates the token and extracts the username.
+4. `UserDetailsServiceImpl` loads the user's details and authorities.
+5. `AuthTokenFilter` creates an authenticated `Authentication` and places it in the `SecurityContext`.
+6. Spring Security evaluates the endpoint's authorization rules.
+7. If authorized, the request proceeds to the REST controller and application business logic.
+
+The refresh token is **not sent with normal API requests**.
+
+### Refresh Token Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant RefreshTokenService
+    participant RefreshTokenRepository
+    participant PostgreSQL
+    participant JwtUtils
+
+    Client->>AuthController: POST /api/auth/refresh<br/>Refresh Token
+    AuthController->>RefreshTokenService: rotateRefreshToken(rawRefreshToken)
+
+    RefreshTokenService->>RefreshTokenService: SHA-256 hash raw token
+    RefreshTokenService->>RefreshTokenRepository: findByTokenHash(tokenHash)
+    RefreshTokenRepository->>PostgreSQL: Query refresh token
+    PostgreSQL-->>RefreshTokenRepository: RefreshToken record
+    RefreshTokenRepository-->>RefreshTokenService: RefreshToken
+
+    RefreshTokenService->>RefreshTokenService: Validate token<br/>exists, active, not expired
+    RefreshTokenService->>JwtUtils: generateTokenFromUsername(username)
+    JwtUtils-->>RefreshTokenService: New Access JWT
+
+    RefreshTokenService->>RefreshTokenService: Revoke old refresh token
+    RefreshTokenService->>RefreshTokenService: Generate new secure refresh token
+    RefreshTokenService->>RefreshTokenService: SHA-256 hash new token
+
+    RefreshTokenService->>RefreshTokenRepository: save(new RefreshToken)
+    RefreshTokenRepository->>PostgreSQL: INSERT new refresh token
+    PostgreSQL-->>RefreshTokenRepository: Saved
+
+    RefreshTokenService-->>AuthController: New Access JWT + New Refresh Token
+    AuthController-->>Client: RefreshTokenResponse
+```
+
+When the access JWT expires:
+
+1. The client sends the refresh token to `/api/auth/refresh`.
+2. The endpoint is publicly accessible because the access JWT may already be expired.
+3. `RefreshTokenService` hashes the supplied raw refresh token using SHA-256.
+4. The hash is looked up in the database.
+5. The refresh token must exist, must not be revoked, and must not be expired.
+6. The associated user is retrieved from the refresh-token record.
+7. A new access JWT is generated.
+8. The existing refresh token is revoked.
+9. A new refresh token is generated and persisted.
+10. The new access JWT and new refresh token are returned to the client.
+
+This process is called **refresh token rotation**. The previously used refresh token remains stored in the database with `revoked = true`, preventing it from being reused.
+
+### Refresh Token Rotation
+
+```text
+Refresh Token A
+       │
+       │ /refresh
+       ▼
+   Validate A
+       │
+       ▼
+   Revoke A
+       │
+       ├──────────────► New Access JWT
+       │
+       ▼
+ Generate Token B
+       │
+       ▼
+ Persist B
+       │
+       ▼
+Return JWT + Token B
+```
+
+For example:
+
+```text
+Token A → revoked = true
+Token B → revoked = false
+```
+
+If Token A is subsequently submitted again, the request is rejected because Token A has already been revoked.
+
+### Signout Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant RefreshTokenService
+    participant RefreshTokenRepository
+    participant PostgreSQL
+
+    Client->>AuthController: POST /api/auth/signout<br/>Refresh Token
+    AuthController->>RefreshTokenService: revokeRefreshToken(rawRefreshToken)
+
+    RefreshTokenService->>RefreshTokenService: SHA-256 hash raw token
+    RefreshTokenService->>RefreshTokenRepository: findByTokenHash(tokenHash)
+    RefreshTokenRepository->>PostgreSQL: Query refresh token
+    PostgreSQL-->>RefreshTokenRepository: RefreshToken record
+    RefreshTokenRepository-->>RefreshTokenService: RefreshToken
+
+    RefreshTokenService->>RefreshTokenService: Check revocation/expiration state
+    RefreshTokenService->>RefreshTokenService: Set revoked = true
+    RefreshTokenService->>PostgreSQL: Update refresh token
+    PostgreSQL-->>RefreshTokenService: Transaction committed
+
+    RefreshTokenService-->>AuthController: Success
+    AuthController-->>Client: 200 OK<br/>You've been signed out!
+```
+
+When the user signs out:
+
+1. The client sends its refresh token to `/api/auth/signout`.
+2. The endpoint is publicly accessible so that signout can still be performed even when the access JWT has expired.
+3. The refresh token is hashed and looked up in the database.
+4. If the refresh token does not exist, the request is rejected.
+5. If the refresh token is already revoked or expired, no further action is required.
+6. Otherwise, the refresh token is marked as revoked.
+7. A revoked refresh token can no longer be used to obtain a new access JWT.
+
+Signout revokes the refresh token but does not immediately invalidate an already-issued access JWT. Since access JWTs are short-lived, the remaining validity window is limited by the access-token expiration time.
+
+### Authentication Endpoints
+
+| Endpoint | Authentication | Purpose |
+|----------|-----------------|---------|
+| `POST /api/auth/signup` | Public | Register a new user. |
+| `POST /api/auth/signin` | Public | Authenticate credentials and receive an access JWT and refresh token. |
+| `POST /api/auth/refresh` | Public | Validate and rotate a refresh token to obtain a new access JWT and refresh token. |
+| `POST /api/auth/signout` | Public | Revoke the supplied refresh token. |
+
+The refresh and signout endpoints are intentionally public because their credential is the refresh token itself. A valid access JWT is not required, allowing these operations to function even after the access JWT has expired.
 
 ### Security Components
 
 | Component | Responsibility |
 |-----------|----------------|
 | **WebSecurityConfig** | Configures Spring Security, CORS, stateless session management, endpoint authorization rules, authentication provider, password encoder, and JWT filter registration. |
-| **AuthTokenFilter** | Intercepts incoming requests, extracts the JWT from the `Authorization` header, validates it, and authenticates the user before the request reaches the controllers. |
-| **JwtUtils** | Generates JWTs after successful authentication, validates incoming tokens, extracts usernames, and manages token signing using the configured secret key. |
-| **UserDetailsServiceImpl** | Loads user information and assigned roles from the database during authentication. |
+| **AuthTokenFilter** | Intercepts incoming requests, extracts the access JWT from the `Authorization` header, validates it, and authenticates the user before the request reaches the controllers. |
+| **JwtUtils** | Generates access JWTs after successful authentication, validates incoming JWTs, extracts usernames, and manages JWT signing using the configured secret key. |
+| **UserDetailsServiceImpl** | Loads user information and assigned roles from the database during authentication and JWT-based request authentication. |
 | **UserDetailsImpl** | Spring Security implementation of `UserDetails` that represents the authenticated user and exposes granted authorities. |
-| **AuthController** | Exposes authentication-related endpoints such as user registration, login, current user information, seller management, and role promotion. |
-| **AuthService** | Implements authentication, user registration, JWT generation, seller retrieval, role promotion, and current user operations. |
+| **RefreshTokenService** | Defines refresh-token generation, rotation, and revocation operations. |
+| **RefreshTokenServiceImpl** | Generates cryptographically secure refresh tokens, hashes them using SHA-256, persists refresh-token metadata, validates expiration/revocation state, rotates tokens, and revokes tokens during signout. |
+| **RefreshTokenRepository** | Provides database access for persisted refresh tokens, including lookup by token hash. |
+| **RefreshToken** | Entity representing a persisted refresh-token record, including its hash, associated user, creation time, expiration time, and revocation state. |
+| **AuthController** | Exposes authentication-related endpoints including registration, login, refresh-token rotation, signout, current user information, seller management, and role promotion. |
+| **AuthService** | Implements authentication, user registration, JWT generation, refresh-token integration, seller retrieval, role promotion, signout, and current user operations. |
 | **AuthEntryPointJwt** | Returns a standardized `401 Unauthorized` response when authentication fails or a JWT is missing or invalid. |
 | **CustomAccessDeniedHandler** | Returns a standardized `403 Forbidden` response when an authenticated user attempts to access a resource without sufficient permissions. |
 | **SecurityExceptionHandler** | Converts authentication exceptions such as invalid login credentials into consistent REST API error responses. |
 
 ### Role Permissions
 
-| Role | Permissions                                                                                                                                     |
-|------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Customer** | Register an account, authenticate, browse products, manage the shopping cart, manage addresses, place orders, and view personal order history.  |
-| **Seller** | All Customer permissions, plus manage their products, inventory, and customer orders associated with their products.                            |
+| Role | Permissions |
+|------|-------------|
+| **Customer** | Register an account, authenticate, browse products, manage the shopping cart, manage addresses, place orders, and view personal order history. |
+| **Seller** | All Customer permissions, plus manage their products, inventory, and customer orders associated with their products. |
 | **Admin** | Full administrative access, including seller management, user role promotion, analytics endpoints, and all protected administrative operations. |
 
 ## Application Flow
@@ -816,7 +1008,6 @@ The current implementation provides a complete and functional e-commerce backend
 
 | Improvement | Description |
 |------------|-------------|
-| **Refresh Token Mechanism** | Introduce refresh tokens to allow secure access token renewal without requiring users to log in repeatedly. |
 | **Rate Limiting** | Protect public APIs against abuse and brute-force attacks by limiting request rates per client or user. |
 
 ---
