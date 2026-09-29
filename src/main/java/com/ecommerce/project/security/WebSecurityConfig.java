@@ -15,8 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -123,6 +123,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    @Order(1)
     public CommandLineRunner initRoles(RoleRepository roleRepository) {
         return args -> {
             roleRepository.findByRoleName(AppRole.ROLE_USER)
@@ -146,7 +147,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    @DependsOn("initRoles")
+    @Order(2)
     @Profile("!test")
     public CommandLineRunner seedUsers(RoleRepository roleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
