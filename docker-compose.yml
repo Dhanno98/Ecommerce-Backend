@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+  sb-ecom:
+    build: .
+    image: sb-ecom:1.0
+    environment:
+      DB_POSTGRES_URL: jdbc:postgresql://postgres:5432/ecommerce
+      DB_POSTGRES_USERNAME: postgres
+      DB_POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+    ports:
+      - "8080:8080"
+    volumes:
+      - product-images:/app/images
+
+volumes:
+  postgres-data:
+  product-images:
