@@ -17,10 +17,14 @@ A production-style RESTful backend built with Spring Boot for a multi-role e-com
 
 ---
 
+🚀 **Want to run the application?**  
+See the **[Setup & Running Guide](SETUP.md)** for prerequisites, configuration, local setup, Docker setup, and testing instructions.
+
 Ecommerce Backend API is a Spring Boot application that serves as the backend of an online shopping platform. It provides secure authentication and authorization using JSON Web Tokens (JWT), supports multiple user roles (Admin, Seller, and Customer), and offers product catalog, shopping cart, address, and order management. The application also integrates Stripe for secure online payments, supports image uploads for products, and follows a layered, service-oriented architecture with comprehensive validation, exception handling, and extensive unit and integration testing.
 
 ## Quick Navigation
 
+- [Setup & Running](#setup--running)
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -30,7 +34,6 @@ Ecommerce Backend API is a Spring Boot application that serves as the backend of
 - [Authentication & Authorization](#authentication--authorization-1)
 - [Application Flow](#application-flow)
 - [API Documentation](#api-documentation)
-- [Setup & Running](#setup--running)
 - [Stripe Integration](#stripe-integration)
 - [Image Upload](#image-upload)
 - [Testing Strategy](#testing-strategy)
@@ -38,6 +41,12 @@ Ecommerce Backend API is a Spring Boot application that serves as the backend of
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
+
+## Setup & Running
+
+For prerequisites, installation, configuration, testing, and instructions
+for running the application locally or with Docker, see
+[SETUP.md](SETUP.md).
 
 ## Overview
 
@@ -624,12 +633,6 @@ The API documentation is automatically generated from the application's source c
 - Request and response schema documentation
 - Endpoint grouping by functional module
 - Execute API requests directly from the browser
-
-## Setup & Running
-
-For prerequisites, installation, configuration, testing, and instructions
-for running the application locally or with Docker, see
-[SETUP.md](SETUP.md).
 
 ## Stripe Integration
 
