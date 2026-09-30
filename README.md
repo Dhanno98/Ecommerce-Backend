@@ -4,10 +4,11 @@ A production-style RESTful backend built with Spring Boot for a multi-role e-com
 
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.x-6DB33F)
-![Spring Security](https://img.shields.io/badge/Spring_Security-6.x-6DB33F)
+![Spring Security](https://img.shields.io/badge/Spring_Security-7.0.3-6DB33F)
 ![JWT](https://img.shields.io/badge/JWT-Authentication-black)
 ![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-Hibernate-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791)
+![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED)
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D)
 ![JUnit 5](https://img.shields.io/badge/JUnit-5-25A162)
@@ -29,10 +30,7 @@ Ecommerce Backend API is a Spring Boot application that serves as the backend of
 - [Authentication & Authorization](#authentication--authorization-1)
 - [Application Flow](#application-flow)
 - [API Documentation](#api-documentation)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [Running Tests](#running-tests)
+- [Setup & Running](#setup--running)
 - [Stripe Integration](#stripe-integration)
 - [Image Upload](#image-upload)
 - [Testing Strategy](#testing-strategy)
@@ -103,6 +101,7 @@ The following sections explore the application's features, architecture, securit
 | **Security**          | Spring Security, JWT       | Authentication and role-based authorization |
 | **Persistence**       | Spring Data JPA, Hibernate | ORM and repository abstraction              |
 | **Database**          | PostgreSQL                 | Relational database                         |
+| **Containerization**  | Docker, Docker Compose     | Application containerization and orchestration |
 | **Validation**        | Jakarta Bean Validation    | Request validation                          |
 | **API Documentation** | Swagger / OpenAPI          | Interactive REST API documentation          |
 | **Payment Gateway**   | Stripe                     | Secure online payment processing            |
@@ -161,7 +160,7 @@ flowchart TD
 | **Repository Layer**        | Uses Spring Data JPA repositories to perform database operations and custom queries while abstracting persistence logic from the business layer.                                                                                                  |
 | **Shared Components**       | Reusable infrastructure including `ImageUrlUtil`, `AuthUtil`, `PaginationValidator`, request validation, and centralized exception handling that is shared across multiple modules.                                                               |
 | **Stripe Integration**      | Integrates with the Stripe API to support payment intent creation and payment processing for customer checkout.                                                                                                                                   |
-| **File Storage**            | Stores uploaded product images in the application's local file system, while `ImageUrlUtil` generates URLs for accessing those images through the REST API.                                                                                       |
+| **File Storage**            | Stores uploaded product images on the application's filesystem. When running with Docker, the image directory is backed by a persistent Docker volume so uploaded images survive container recreation.                                            |
 | **Database**                | PostgreSQL stores all application data, including users, roles, products, categories, carts, addresses, orders, payments, and related domain entities.                                                                                            |
 
 ## Project Structure
@@ -169,32 +168,41 @@ flowchart TD
 The project is organized using a feature-oriented package structure built on top of a layered architecture. Related components are grouped into dedicated packages, making the codebase easier to navigate, maintain, and extend as new functionality is added.
 
 ```text
-src
-├── main
-│   ├── java/com/ecommerce/project
-│   │   ├── config/          # Application configuration
-│   │   ├── controller/      # REST API endpoints
-│   │   ├── exceptions/      # Custom exceptions and global exception handling
-│   │   ├── model/           # JPA entities and domain models
-│   │   ├── payload/         # Request and response DTOs
-│   │   ├── repositories/    # Spring Data JPA repositories
-│   │   ├── security/        # JWT authentication and Spring Security
-│   │   ├── service/         # Business logic implementation
-│   │   ├── util/            # Shared utility classes
-│   │   └── SbEcomApplication.java
+.
+├── .dockerignore
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+├── SETUP.md
+├── src
+│   ├── main
+│   │   ├── java/com/ecommerce/project
+│   │   │   ├── config/          # Application configuration
+│   │   │   ├── controller/      # REST API endpoints
+│   │   │   ├── exceptions/      # Custom exceptions and global exception handling
+│   │   │   ├── model/           # JPA entities and domain models
+│   │   │   ├── payload/         # Request and response DTOs
+│   │   │   ├── repositories/    # Spring Data JPA repositories
+│   │   │   ├── security/        # JWT authentication and Spring Security
+│   │   │   ├── service/         # Business logic implementation
+│   │   │   ├── util/            # Shared utility classes
+│   │   │   └── SbEcomApplication.java
+│   │   │
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       ├── application-dev.properties
+│   │       ├── application-test.properties
+│   │       └── application-prod.properties
 │   │
-│   └── resources/
-│       ├── application.properties
-│       ├── application-dev.properties
-│       ├── application-test.properties
-│       └── application-prod.properties
-│
-└── test
-    └── java/com/ecommerce/project
-        ├── integration/     # Integration tests
-        ├── service/         # Unit tests for service layer
-        ├── util/            # Utility class tests
-        └── SbEcomApplicationTests.java
+│   └── test
+│       └── java/com/ecommerce/project
+│           ├── integration/     # Integration tests
+│           ├── service/         # Unit tests for service layer
+│           ├── util/            # Utility class tests
+│           └── SbEcomApplicationTests.java
 ```
 
 ### Package Organization
@@ -617,190 +625,11 @@ The API documentation is automatically generated from the application's source c
 - Endpoint grouping by functional module
 - Execute API requests directly from the browser
 
-## Installation
-
-Follow the steps below to install the required software and obtain a local copy of the project.
-
-### Prerequisites
-
-Ensure the following software is installed before proceeding.
-
-| Software | Version |
-|----------|----------|
-| Java | 21 (LTS) |
-| Apache Maven | 3.9+ |
-| PostgreSQL | 16+ |
-| Git | Latest stable version |
-
-> **Note:** The project has been developed and tested using Java 21.
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/Dhanno98/Ecommerce-Backend.git
-cd Ecommerce-Backend
-```
-
-## Configuration
-
-### Configure PostgreSQL
-
-Create a PostgreSQL database that will be used by the application.
-
-```sql
-CREATE DATABASE ecommerce;
-```
-
-> **Note:** The required database tables are created automatically by Hibernate when the application starts.
-
----
-
-### Configure Environment Variables
-
-The application reads sensitive configuration such as database credentials, JWT signing secrets, and Stripe API keys from environment variables instead of storing them in the source code.
-
-Copy the provided `.env.example` file.
-
-```bash
-cp .env.example .env
-```
-
-The repository includes a `.env.example` file that documents all required environment variables. Update the values according to your local environment.
-
-Example:
-
-```text
-DB_POSTGRES_URL=jdbc:postgresql://localhost:5432/ecommerce
-DB_POSTGRES_USERNAME=your_db_username
-DB_POSTGRES_PASSWORD=your_db_password
-
-JWT_SECRET=your_base64_encoded_secret
-
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
-```
-
----
-
-### Export Environment Variables
-
-Before starting the application, export the environment variables into the same terminal session from which you will execute the Maven commands. If you open a new terminal, the variables must be exported again unless they have been configured permanently.
-
-#### Git Bash / Linux / macOS
-
-```bash
-export DB_POSTGRES_URL=jdbc:postgresql://localhost:5432/ecommerce
-export DB_POSTGRES_USERNAME=your_db_username
-export DB_POSTGRES_PASSWORD=your_db_password
-export JWT_SECRET=your_base64_encoded_secret
-export STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
-```
-
-#### Windows PowerShell
-
-```powershell
-$env:DB_POSTGRES_URL="jdbc:postgresql://localhost:5432/ecommerce"
-$env:DB_POSTGRES_USERNAME="your_db_username"
-$env:DB_POSTGRES_PASSWORD="your_db_password"
-$env:JWT_SECRET="your_base64_encoded_secret"
-$env:STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxx"
-```
-
-> **Important**
->
-> Never commit real credentials, secrets, or API keys to version control.
-
-
-## Running the Application
-
-### Build the Project
-
-Compile the application, execute all unit tests, and generate an executable JAR using the Maven Wrapper.
-
-```bash
-./mvnw clean package
-```
-This command compiles the application, executes all unit tests, and generates an executable JAR. Integration tests are executed during the Maven `verify` phase and therefore are not run by `./mvnw clean package`.
-
-> **Note:** This project includes the Maven Wrapper (`mvnw`), allowing the project to be built without requiring a globally installed version of Maven. Use the appropriate command for your platform:
->- Windows Command Prompt: `mvnw.cmd`
->- Windows PowerShell: `.\mvnw.cmd`
->- Git Bash, Linux, and macOS: `./mvnw`
-
----
-
-### Start the Application
-
-Run the Spring Boot application.
-
-```bash
-./mvnw spring-boot:run
-```
-
-Alternatively, execute the packaged JAR.
-
-```bash
-java -jar target/sb-ecom-0.0.1-SNAPSHOT.jar
-```
-
----
-
-### Verify the Installation
-
-Once the application has started successfully, the following resources should be available.
-
-| Resource | URL |
-|----------|-----|
-| REST API | `http://localhost:8080` |
-| Swagger UI | `http://localhost:8080/swagger-ui/index.html` |
-| OpenAPI Specification | `http://localhost:8080/v3/api-docs` |
-
-If the Swagger UI loads successfully, the backend has been configured correctly and is ready to accept requests.
-
----
-
-### Default Seeded Users
-
-When the application starts (except under the `test` profile), it automatically creates the following sample users if they do not already exist.
-
-| Role | Username | Password |
-|------|----------|----------|
-| Customer (`ROLE_USER`) | `user1` | `password1` |
-| Seller (`ROLE_SELLER`) | `seller1` | `password2` |
-| Administrator (`ROLE_ADMIN`) | `admin` | `adminPass` |
-
-These accounts are intended for local development and API testing only.
-
-## Running Tests
-
-The project contains both unit tests and integration tests.
-
-### Run Unit Tests
-
-Execute only the unit tests.
-
-```bash
-./mvnw test
-```
-
----
-
-### Run Unit and Integration Tests
-
-Execute the complete test suite.
-
-```bash
-./mvnw clean verify
-```
-
-This command performs the complete Maven verification lifecycle, including:
-
-- Compiles the application
-- Executes all unit tests
-- Packages the application
-- Executes all integration tests
-- Verifies the build
-
----
+## Setup & Running
+
+For prerequisites, installation, configuration, testing, and instructions
+for running the application locally or with Docker, see
+[SETUP.md](SETUP.md).
 
 ## Stripe Integration
 
@@ -864,7 +693,7 @@ flowchart LR
 
 ## Image Upload
 
-The application supports secure product image uploads for product management. Uploaded images are stored on the server's filesystem, while only the generated UUID-based filename is persisted in the database. This approach keeps the database lightweight, prevents filename collisions, and simplifies image retrieval.
+The application supports secure product image uploads for product management. Uploaded images are stored on the server's filesystem, while only the generated UUID-based filename is persisted in the database. When running with Docker, the image directory is backed by a persistent Docker volume so uploaded images survive container recreation. This approach keeps the database lightweight, prevents filename collisions, and simplifies image retrieval.
 
 Image management is protected using role-based authorization:
 
@@ -1042,7 +871,6 @@ The current implementation provides a complete and functional e-commerce backend
 
 | Improvement | Description |
 |------------|-------------|
-| **Docker Compose** | Containerize the application and supporting services to simplify local development and deployment. |
 | **CI/CD Pipeline** | Automate build, testing, and deployment pipelines using GitHub Actions or similar CI/CD platforms. |
 | **Kubernetes** | Deploy and orchestrate containerized services using Kubernetes for scalable and resilient cloud-native deployments. |
 
@@ -1093,6 +921,7 @@ Special thanks to their maintainers and contributors.
 - Spring Data JPA
 - Hibernate
 - PostgreSQL
+- Docker
 - Stripe
 - JUnit 5
 - Mockito
