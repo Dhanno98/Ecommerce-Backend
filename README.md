@@ -10,6 +10,7 @@ A production-style RESTful backend built with Spring Boot for a multi-role e-com
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791)
 ![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED)
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF)
+![Redis](https://img.shields.io/badge/Redis-Caching-DC382D)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D)
 ![JUnit 5](https://img.shields.io/badge/JUnit-5-25A162)
 ![Mockito](https://img.shields.io/badge/Mockito-Testing-78A641)
@@ -93,6 +94,12 @@ The following sections explore the application's features, architecture, securit
 * Pagination and sorting support for REST endpoints
 * OpenAPI (Swagger) documentation for API exploration
 
+### Caching
+
+* Redis-based caching for frequently accessed product data
+* Configurable cache expiration using Spring Cache and Redis
+* Cache updates on product modifications and eviction on product deletion
+
 ### Quality & Testing
 
 * Comprehensive unit testing using JUnit 5 and Mockito
@@ -110,6 +117,7 @@ The following sections explore the application's features, architecture, securit
 | **Security**          | Spring Security, JWT       | Authentication and role-based authorization |
 | **Persistence**       | Spring Data JPA, Hibernate | ORM and repository abstraction              |
 | **Database**          | PostgreSQL                 | Relational database                         |
+| **Caching**          | Redis, Spring Cache       | Caching of frequently accessed product data |
 | **Containerization**  | Docker, Docker Compose     | Application containerization and orchestration |
 | **Validation**        | Jakarta Bean Validation    | Request validation                          |
 | **API Documentation** | Swagger / OpenAPI          | Interactive REST API documentation          |
@@ -857,7 +865,6 @@ The current implementation provides a complete and functional e-commerce backend
 
 | Improvement | Description |
 |------------|-------------|
-| **Redis Caching** | Cache frequently accessed data such as products, categories, and analytics to reduce database load and improve response times. |
 | **Elasticsearch** | Implement full-text search to provide faster and more advanced product search capabilities. |
 
 ---
@@ -924,6 +931,7 @@ Special thanks to their maintainers and contributors.
 - Spring Data JPA
 - Hibernate
 - PostgreSQL
+- Redis
 - Docker
 - Stripe
 - JUnit 5
