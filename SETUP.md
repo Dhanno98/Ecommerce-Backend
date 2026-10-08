@@ -9,6 +9,7 @@ Choose the setup method that best matches your development environment. The Dock
 - [Running Locally](#running-locally)
   - [Installation](#installation)
   - [Configuration](#configuration)
+  - [Start Redis](#start-redis)
   - [Running the Application](#running-the-application)
 - [Running with Docker](#running-with-docker)
   - [Installation](#installation-1)
@@ -29,9 +30,10 @@ Ensure the following software is installed before proceeding.
 |----------|----------|
 | Java | 21 (LTS) |
 | PostgreSQL | 16+ |
+| Docker Desktop | Latest stable version |
 | Git | Latest stable version |
 
-> **Note:** The project has been developed and tested using Java 21.
+> **Note:** The application runs locally using Java and PostgreSQL. Redis runs in a Docker container, so Docker Desktop is required for local development. The project has been developed and tested using Java 21.
 
 **2. Clone the Repository**
 
@@ -74,6 +76,7 @@ DB_POSTGRES_PASSWORD=your_db_password
 JWT_SECRET=your_base64_encoded_secret
 
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
+REDIS_URL=redis://localhost:6379
 ```
 
 **3. Export Environment Variables**
@@ -88,6 +91,7 @@ export DB_POSTGRES_USERNAME=your_db_username
 export DB_POSTGRES_PASSWORD=your_db_password
 export JWT_SECRET=your_base64_encoded_secret
 export STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
+export REDIS_URL=redis://localhost:6379
 ```
 
 #### Windows PowerShell
@@ -98,12 +102,42 @@ $env:DB_POSTGRES_USERNAME="your_db_username"
 $env:DB_POSTGRES_PASSWORD="your_db_password"
 $env:JWT_SECRET="your_base64_encoded_secret"
 $env:STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxx"
+$env:REDIS_URL="redis://localhost:6379"
 ```
 
 > **Important**
 >
 > Never commit real credentials, secrets, or API keys to version control.
 
+### Start Redis
+
+Redis is used by the application for caching. For local development, Redis runs in a Docker container while the Spring Boot application and PostgreSQL run directly on the host machine.
+
+Start the Redis container using Docker Compose:
+
+```bash
+docker compose up -d redis
+```
+
+Verify that the Redis container is running:
+
+```bash
+docker compose ps
+```
+The redis service should be shown as running.
+
+You can also verify the Redis connection directly:
+
+```bash
+docker compose exec redis redis-cli ping
+```
+
+A successful connection returns:
+```text
+PONG
+```
+
+> **Note:** Redis does not need to be installed separately on your machine. Docker Desktop is used to run the Redis container.
 
 ### Running the Application
 
@@ -204,7 +238,7 @@ The `DB_POSTGRES_PASSWORD` value is used by the PostgreSQL container to initiali
 
 The `JWT_SECRET` and `STRIPE_SECRET_KEY` values are passed to the Spring Boot container for JWT signing and Stripe payment processing.
 
-> **Note:** The PostgreSQL database name (`ecommerce`), username (`postgres`), and internal database URL (`jdbc:postgresql://postgres:5432/ecommerce`) are defined by `docker-compose.yml`. The application connects to PostgreSQL using the Docker Compose service name `postgres` rather than `localhost`.
+> **Note:** The PostgreSQL database name (`ecommerce`), username (`postgres`), and internal database URL (`jdbc:postgresql://postgres:5432/ecommerce`) are defined by `docker-compose.yml`. Redis is also configured by `docker-compose.yml` and is available to the Spring Boot container at `redis://redis:6379`. The application connects to PostgreSQL and Redis using their Docker Compose service names (`postgres` and `redis`) rather than `localhost`.
 
 > **Important**
 >
@@ -214,7 +248,7 @@ The `JWT_SECRET` and `STRIPE_SECRET_KEY` values are passed to the Spring Boot co
 
 **1. Build and Start the Containers**
 
-Build the Spring Boot application image and start the application and PostgreSQL containers using Docker Compose.
+Build the Spring Boot application image and start the application, PostgreSQL, and Redis containers using Docker Compose.
 
 ```bash
 docker compose up --build
@@ -236,7 +270,7 @@ Check the status of the running containers:
 docker compose ps
 ```
 
-Both the `sb-ecom` and `postgres` services should be running.
+The `sb-ecom`, `postgres`, and `redis` services should be running.
 
 **3. Verify the Application**
 
