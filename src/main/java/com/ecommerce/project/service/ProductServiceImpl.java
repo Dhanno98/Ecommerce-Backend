@@ -22,6 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -133,6 +136,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#productId")
+    public ProductDTO getProductById(Long productId) {
+        Product productFromDb = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
+        return mapToDTO(productFromDb);
+    }
+
+    @Override
     public ProductResponse searchByCategory(Long categoryId, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         paginationValidator.validate(pageNumber, pageSize, sortBy, sortOrder, ALLOWED_SORT_FIELDS);
 
@@ -173,6 +184,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CachePut(value = "products", key = "#productId")
     public ProductDTO updateProduct(CreateProductRequest productRequest, Long productId) {
         log.info("Product update requested. productId={}", productId);
 
@@ -193,6 +205,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CachePut(value = "products", key = "#productId")
     public ProductDTO updateProductSeller(CreateProductRequest productRequest, Long productId) {
         User seller = authUtil.loggedInUser();
 
@@ -221,6 +234,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "products", key = "#productId")
     public ProductDTO deleteProduct(Long productId) {
         log.info("Product deletion requested. productId={}", productId);
 
@@ -236,6 +250,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "products", key = "#productId")
     public ProductDTO deleteProductSeller(Long productId) {
         User seller = authUtil.loggedInUser();
 
@@ -258,6 +273,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CachePut(value = "products", key = "#productId")
     public ProductDTO updateProductImage(Long productId, MultipartFile image) throws IOException {
         log.info("Product image update requested. productId={}", productId);
 
@@ -276,6 +292,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
+    @CachePut(value = "products", key = "#productId")
     public ProductDTO updateProductImageSeller(Long productId, MultipartFile image) throws IOException {
         User seller = authUtil.loggedInUser();
 

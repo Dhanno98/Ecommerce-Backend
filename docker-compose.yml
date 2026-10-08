@@ -17,10 +17,16 @@ services:
       DB_POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      REDIS_URL: redis://redis:6379
     ports:
       - "8080:8080"
     volumes:
       - product-images:/app/images
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres-data:
