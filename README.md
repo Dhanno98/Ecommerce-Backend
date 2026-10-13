@@ -23,9 +23,9 @@ caching, and comprehensive automated testing.
 
 🚀 **Want to try the application?**  
 
-**Swagger UI:** [https://sb-ecom-1-0.onrender.com/swagger-ui/index.html](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
+**Backend Swagger UI:** [https://sb-ecom-1-0.onrender.com/swagger-ui/index.html](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
 
-**Full-Stack Demo:** [https://dhanno-ecommerce.netlify.app/](https://dhanno-ecommerce.netlify.app/)
+**Live Application:** [https://dhanno-ecommerce.netlify.app/](https://dhanno-ecommerce.netlify.app/)
 
 🚀 **Want to run the application locally?**
 
