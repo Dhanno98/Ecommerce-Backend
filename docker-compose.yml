@@ -18,6 +18,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       REDIS_URL: redis://redis:6379
+      FRONTEND_URL: ${FRONTEND_URL}
+      IMAGE_BASE_URL: ${IMAGE_BASE_URL}
     ports:
       - "8080:8080"
     volumes:
