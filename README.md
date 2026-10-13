@@ -1,6 +1,9 @@
 # Ecommerce Backend API
 
-A production-style RESTful backend built with Spring Boot for a multi-role e-commerce platform, featuring JWT authentication, role-based authorization, product management, shopping cart, Stripe payments, image uploads, and comprehensive automated testing.
+A production-oriented RESTful backend API built with Spring Boot for a multi-role
+e-commerce platform, featuring JWT authentication, role-based authorization,
+product management, shopping cart, Stripe payments, image uploads, Redis
+caching, and comprehensive automated testing.
 
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.x-6DB33F)
@@ -18,18 +21,26 @@ A production-style RESTful backend built with Spring Boot for a multi-role e-com
 
 ---
 
-🚀 **Want to run the application?**  
+🚀 **Want to try the application?**  
+
+**Swagger UI:** [https://sb-ecom-1-0.onrender.com/swagger-ui/index.html](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
+
+**Full-Stack Demo:** [https://dhanno-ecommerce.netlify.app/](https://dhanno-ecommerce.netlify.app/)
+
+🚀 **Want to run the application locally?**
+
 See the **[Setup & Running Guide](SETUP.md)** for prerequisites, configuration, local setup, Docker setup, and testing instructions.
 
 Ecommerce Backend API is a Spring Boot application that serves as the backend of an online shopping platform. It provides secure authentication and authorization using JSON Web Tokens (JWT), supports multiple user roles (Admin, Seller, and Customer), and offers product catalog, shopping cart, address, and order management. The application also integrates Stripe for secure online payments, supports image uploads for products, and follows a layered, service-oriented architecture with comprehensive validation, exception handling, and extensive unit and integration testing.
 
 ## Quick Navigation
 
-- [Setup & Running](#setup--running)
 - [Overview](#overview)
+- [Setup & Running](#setup--running)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
+- [Production Deployment](#production-deployment)
 - [Project Structure](#project-structure)
 - [Database Design](#database-design)
 - [Authentication & Authorization](#authentication--authorization-1)
@@ -43,12 +54,6 @@ Ecommerce Backend API is a Spring Boot application that serves as the backend of
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
-## Setup & Running
-
-For prerequisites, installation, configuration, testing, and instructions
-for running the application locally or with Docker, see
-[SETUP.md](SETUP.md).
-
 ## Overview
 
 Ecommerce Backend API is the backend of a modern e-commerce platform built using Spring Boot. The project is designed with a strong emphasis on clean architecture, separation of concerns, maintainability, and automated testing.
@@ -56,6 +61,12 @@ Ecommerce Backend API is the backend of a modern e-commerce platform built using
 The codebase follows a layered, service-oriented design that separates business logic, data access, API contracts, and cross-cutting concerns into dedicated components. This approach keeps the application modular, easier to maintain, and straightforward to extend as new features are introduced.
 
 The following sections explore the application's features, architecture, security, database design, testing strategy, and implementation details.
+
+## Setup & Running
+
+For prerequisites, installation, configuration, testing, and instructions
+for running the application locally or with Docker, see
+[SETUP.md](SETUP.md).
 
 ## Features
 
@@ -109,23 +120,27 @@ The following sections explore the application's features, architecture, securit
 
 ## Tech Stack
 
-| Category              | Technology                 | Usage                                       |
-| --------------------- |----------------------------|---------------------------------------------|
-| **Language**          | Java 21                    | Primary programming language                |
-| **Framework**         | Spring Boot 4.x            | Core backend framework                      |
-| **Web**               | Spring MVC                 | REST API development                        |
-| **Security**          | Spring Security, JWT       | Authentication and role-based authorization |
-| **Persistence**       | Spring Data JPA, Hibernate | ORM and repository abstraction              |
-| **Database**          | PostgreSQL                 | Relational database                         |
-| **Caching**          | Redis, Spring Cache       | Caching of frequently accessed product data |
+| Category              | Technology                 | Usage                                          |
+|-----------------------|----------------------------|------------------------------------------------|
+| **Language**          | Java 21                    | Primary programming language                   |
+| **Framework**         | Spring Boot 4.x            | Core backend framework                         |
+| **Web**               | Spring MVC                 | REST API development                           |
+| **Security**          | Spring Security, JWT       | Authentication and role-based authorization    |
+| **Persistence**       | Spring Data JPA, Hibernate | ORM and repository abstraction                 |
+| **Database**          | PostgreSQL                 | Relational database                            |
+| **Caching**           | Redis, Spring Cache        | Caching of frequently accessed product data    |
 | **Containerization**  | Docker, Docker Compose     | Application containerization and orchestration |
-| **Validation**        | Jakarta Bean Validation    | Request validation                          |
-| **API Documentation** | Swagger / OpenAPI          | Interactive REST API documentation          |
-| **Payment Gateway**   | Stripe                     | Secure online payment processing            |
-| **Build Tool**        | Maven                      | Dependency management and project build     |
-| **Testing**           | JUnit 5, Mockito           | Unit and integration testing                |
-| **Logging**           | SLF4J, Logback             | Application logging                         |
-| **Utilities**         | Lombok                     | Reduces boilerplate code                    |
+| **Validation**        | Jakarta Bean Validation    | Request validation                             |
+| **API Documentation** | Swagger / OpenAPI          | Interactive REST API documentation             |
+| **Payment Gateway**   | Stripe                     | Secure online payment processing               |
+| **Build Tool**        | Maven                      | Dependency management and project build        |
+| **Testing**           | JUnit 5, Mockito           | Unit and integration testing                   |
+| **Logging**           | SLF4J, Logback             | Application logging                            |
+| **Utilities**         | Lombok                     | Reduces boilerplate code                       |
+| **Backend Hosting**   | Render                     | Production backend hosting                     |
+| **Database Hosting**  | Neon                       | Managed PostgreSQL hosting                     |
+| **Cache Hosting**     | Render Key Value (Valkey)  | Production Redis-compatible caching            |
+| **Frontend Hosting**  | Netlify                    | Production React frontend hosting              |
 
 ## Architecture
 
@@ -169,16 +184,79 @@ flowchart TD
 
 ### Application Components
 
-| Component                   | Responsibility                                                                                                                                                                                                                                    |
-|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Security Layer**          | Authenticates requests using JWT, authorizes users based on **Admin**, **Seller**, and **Customer** roles, and protects secured endpoints before requests enter the application.                                                                  |
-| **REST Controllers**        | Expose REST endpoints for the application's business modules, validate incoming requests, and delegate business operations to the service layer.                                                                                                  |
-| **Business Service Layer**  | Implements the application's business logic, including authentication, product catalog management, shopping cart operations, order processing, payment integration, analytics, inventory management, and coordination with supporting components. |
-| **Repository Layer**        | Uses Spring Data JPA repositories to perform database operations and custom queries while abstracting persistence logic from the business layer.                                                                                                  |
-| **Shared Components**       | Reusable infrastructure including `ImageUrlUtil`, `AuthUtil`, `PaginationValidator`, request validation, and centralized exception handling that is shared across multiple modules.                                                               |
-| **Stripe Integration**      | Integrates with the Stripe API to support payment intent creation and payment processing for customer checkout.                                                                                                                                   |
-| **File Storage**            | Stores uploaded product images on the application's filesystem. When running with Docker, the image directory is backed by a persistent Docker volume so uploaded images survive container recreation.                                            |
-| **Database**                | PostgreSQL stores all application data, including users, roles, products, categories, carts, addresses, orders, payments, and related domain entities.                                                                                            |
+| Component                   | Responsibility                                                                                                                                                                                                                                                                  |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Security Layer**          | Authenticates requests using JWT, authorizes users based on **Admin**, **Seller**, and **Customer** roles, and protects secured endpoints before requests enter the application.                                                                                                |
+| **REST Controllers**        | Expose REST endpoints for the application's business modules, validate incoming requests, and delegate business operations to the service layer.                                                                                                                                |
+| **Business Service Layer**  | Implements the application's business logic, including authentication, product catalog management, shopping cart operations, order processing, payment integration, analytics, inventory management, and coordination with supporting components.                               |
+| **Repository Layer**        | Uses Spring Data JPA repositories to perform database operations and custom queries while abstracting persistence logic from the business layer.                                                                                                                                |
+| **Shared Components**       | Reusable infrastructure including `ImageUrlUtil`, `AuthUtil`, `PaginationValidator`, request validation, and centralized exception handling that is shared across multiple modules.                                                                                             |
+| **Stripe Integration**      | Integrates with the Stripe API to support payment intent creation and payment processing for customer checkout.                                                                                                                                                                 |
+| **File Storage**            | Stores uploaded product images on the application's filesystem. Local execution uses the backend filesystem, while Docker Compose mounts the image directory to the persistent `product-images` volume. In production, images are stored on the Render application filesystem.  |
+| **Database**                | PostgreSQL stores all application data, including users, roles, products, categories, carts, addresses, orders, payments, and related domain entities.                                                                                                                          |
+
+## Production Deployment
+
+The backend is containerized using Docker and deployed as a production Spring Boot application.
+
+### Production Infrastructure
+
+| Component            | Technology                | Purpose                             |
+|----------------------|---------------------------|-------------------------------------|
+| **Application**      | Spring Boot               | Backend REST API                    |
+| **Containerization** | Docker                    | Packages and runs the application   |
+| **Backend Hosting**  | Render                    | Hosts the production backend        |
+| **Database**         | Neon PostgreSQL           | Production relational database      |
+| **Caching**          | Render Key Value (Valkey) | Production Redis-compatible cache   |
+| **Frontend**         | Netlify                   | Hosts the React frontend            |
+| **Payments**         | Stripe                    | Production payment processing       |
+
+### Production Configuration
+
+The application uses environment variables for environment-specific configuration such as:
+
+- PostgreSQL connection details
+- JWT secret
+- Stripe secret key
+- Redis/Valkey connection URL
+- Frontend URL
+- Image base URL
+
+Production-specific Spring configuration is provided through `application-prod.properties`.
+
+The production server port is configurable through the `PORT` environment variable, allowing the application to run correctly on cloud hosting platforms.
+
+### Production API
+
+Interactive API documentation is available through Swagger UI:
+
+[**https://sb-ecom-1-0.onrender.com/swagger-ui/index.html**](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
+
+### Production Architecture
+
+```mermaid
+flowchart LR
+
+    User["User"]
+
+    Frontend["React Frontend<br/>Netlify"]
+
+    Backend["Spring Boot API<br/>Render"]
+
+    Database[("PostgreSQL<br/>Neon")]
+
+    Cache[("Redis / Valkey<br/>Render")]
+
+    Stripe["Stripe API"]
+
+    User --> Frontend
+    Frontend --> Backend
+
+    Backend --> Database
+    Backend --> Cache
+    Backend --> Stripe
+```
+
 
 ## Project Structure
 
@@ -636,7 +714,7 @@ The API documentation is automatically generated from the application's source c
 ### Features
 
 - Interactive browser-based API explorer
-- OpenAPI 3.1 specification generation
+- OpenAPI specification generation
 - JWT Bearer authentication support
 - Request and response schema documentation
 - Endpoint grouping by functional module
@@ -704,12 +782,31 @@ flowchart LR
 
 ## Image Upload
 
-The application supports secure product image uploads for product management. Uploaded images are stored on the server's filesystem, while only the generated UUID-based filename is persisted in the database. When running with Docker, the image directory is backed by a persistent Docker volume so uploaded images survive container recreation. This approach keeps the database lightweight, prevents filename collisions, and simplifies image retrieval.
+The application supports secure product image uploads for product management. Uploaded
+images are stored on the backend filesystem using generated UUID-based filenames,
+while only the filename is persisted in the database.
 
-Image management is protected using role-based authorization:
+### Local Storage
 
-- **Seller (`ROLE_SELLER`)** – Can upload or update images for their own products.
-- **Administrator (`ROLE_ADMIN`)** – Can upload or update images for any product.
+When running the application directly on the local machine, uploaded images are stored
+in the backend's `images/` directory.
+
+### Docker Storage
+
+When running the application with Docker Compose, the `images/` directory inside the
+backend container is backed by a persistent Docker volume named `product-images`.
+This allows uploaded images to survive container recreation.
+
+The Docker Compose setup also uses a persistent `postgres-data` volume for PostgreSQL
+database storage.
+
+### Production Storage
+
+In the current production deployment, the backend runs on Render and uploaded images
+are stored in the backend container's filesystem.
+
+Render's filesystem is ephemeral, so uploaded images are not guaranteed to survive
+application redeployments or restarts.
 
 ### Upload Flow
 
@@ -747,12 +844,12 @@ flowchart LR
 
 ### Upload Process
 
-| Step | Description |
-|------|-------------|
-| **Validate Image** | Ensures the uploaded file is not empty, verifies the MIME type (`PNG`, `JPEG`, `WEBP`), and enforces a maximum file size of **5 MB**. |
-| **Generate Unique Filename** | Generates a UUID-based filename while preserving the original file extension to prevent filename collisions. |
-| **Store Image** | Saves the uploaded image to the configured server upload directory. The directory is created automatically if it does not already exist. |
-| **Update Product** | Persists the generated filename in the corresponding product record so the image can later be retrieved through the application. |
+| Step | Description                                                                                                                                   |
+|------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Validate Image** | Ensures the uploaded file is not empty, verifies the MIME type (`PNG`, `JPEG`, `WEBP`), and enforces a maximum file size of **5 MB**.         |
+| **Generate Unique Filename** | Generates a UUID-based filename while preserving the original file extension to prevent filename collisions.                                  |
+| **Store Image** | Saves the uploaded image to the configured application upload directory. The directory is created automatically if it does not already exist. |
+| **Update Product** | Persists the generated filename in the corresponding product record so the image can later be retrieved through the application.              |
 
 ### Validation & Security
 
@@ -763,6 +860,11 @@ flowchart LR
 - Images larger than **5 MB** are rejected.
 - UUID-based filenames prevent collisions and reduce the risk of filename conflicts.
 - Only the generated filename is stored in the database; the image itself resides on the server filesystem.
+
+### Image Management Permissions 
+
+- **Seller (`ROLE_SELLER`)** – Can upload or update images for their own products.
+- **Administrator (`ROLE_ADMIN`)** – Can upload or update images for any product.
 
 ## Testing Strategy
 
@@ -817,7 +919,7 @@ The integration test suite validates:
 - Request and response payloads
 - Database persistence
 - Error handling
-- End-to-end controller behavior
+- Complete controller request/response behavior
 
 An **H2 in-memory database** is used during integration testing, providing isolated and repeatable test execution without requiring an external PostgreSQL instance.
 
@@ -836,7 +938,7 @@ This separation ensures that test execution is isolated from development and pro
 
 - Comprehensive happy-path and failure-path coverage
 - Isolation of business logic through dependency mocking
-- End-to-end verification of REST endpoints
+- Complete REST API request/response flow verification
 - Independent test execution without external infrastructure
 - Dedicated test configuration for reproducible results
 

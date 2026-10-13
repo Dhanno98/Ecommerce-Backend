@@ -76,8 +76,17 @@ DB_POSTGRES_PASSWORD=your_db_password
 JWT_SECRET=your_base64_encoded_secret
 
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
+
 REDIS_URL=redis://localhost:6379
+
+FRONTEND_URL=http://localhost:5173
+
+IMAGE_BASE_URL=http://localhost:8080/images
 ```
+
+> **Note:** Stripe payment functionality requires a valid Stripe test secret key.
+> Use Stripe test credentials for local development. Do not use production Stripe
+> credentials in a development environment.
 
 **3. Export Environment Variables**
 
@@ -92,6 +101,8 @@ export DB_POSTGRES_PASSWORD=your_db_password
 export JWT_SECRET=your_base64_encoded_secret
 export STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
 export REDIS_URL=redis://localhost:6379
+export FRONTEND_URL=http://localhost:5173
+export IMAGE_BASE_URL=http://localhost:8080/images
 ```
 
 #### Windows PowerShell
@@ -103,6 +114,8 @@ $env:DB_POSTGRES_PASSWORD="your_db_password"
 $env:JWT_SECRET="your_base64_encoded_secret"
 $env:STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxxxxxx"
 $env:REDIS_URL="redis://localhost:6379"
+$env:FRONTEND_URL="http://localhost:5173"
+$env:IMAGE_BASE_URL="http://localhost:8080/images"
 ```
 
 > **Important**
@@ -143,7 +156,7 @@ PONG
 
 **1. Build the Project**
 
-Compile the application, execute all unit tests, and generate an executable JAR using the Maven Wrapper.
+Compile the application, execute the unit tests, and generate an executable JAR using the Maven Wrapper.
 
 ```bash
 ./mvnw clean package
@@ -224,7 +237,7 @@ cp .env.example .env
 
 The repository includes a `.env.example` file that documents the required environment variables. Update the values in `.env` according to your environment.
 
-For the Docker Compose setup, the following variables are required:
+For the Docker Compose setup, configure the following variables in `.env`:
 
 ```text
 DB_POSTGRES_PASSWORD=your_db_password
@@ -232,11 +245,21 @@ DB_POSTGRES_PASSWORD=your_db_password
 JWT_SECRET=your_base64_encoded_secret
 
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxx
+
+FRONTEND_URL=http://localhost:5173
+
+IMAGE_BASE_URL=http://localhost:8080/images
 ```
 
-The `DB_POSTGRES_PASSWORD` value is used by the PostgreSQL container to initialize the database password and is also passed to the Spring Boot container for database authentication.
+The `DB_POSTGRES_PASSWORD` value is used by the PostgreSQL container to initialize
+the database password and is also passed to the Spring Boot container for database
+authentication.
 
-The `JWT_SECRET` and `STRIPE_SECRET_KEY` values are passed to the Spring Boot container for JWT signing and Stripe payment processing.
+The `JWT_SECRET` and `STRIPE_SECRET_KEY` values are passed to the Spring Boot
+container for JWT signing and Stripe payment processing.
+
+The `FRONTEND_URL` value specifies the URL of the frontend application, while
+`IMAGE_BASE_URL` specifies the base URL used to access uploaded product images.
 
 > **Note:** The PostgreSQL database name (`ecommerce`), username (`postgres`), and internal database URL (`jdbc:postgresql://postgres:5432/ecommerce`) are defined by `docker-compose.yml`. Redis is also configured by `docker-compose.yml` and is available to the Spring Boot container at `redis://redis:6379`. The application connects to PostgreSQL and Redis using their Docker Compose service names (`postgres` and `redis`) rather than `localhost`.
 
