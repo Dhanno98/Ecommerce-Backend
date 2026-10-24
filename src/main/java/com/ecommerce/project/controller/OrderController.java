@@ -48,7 +48,8 @@ public class OrderController {
     @PostMapping("/order/stripe-client-secret")
     public ResponseEntity<String> createStripeClientSecret(@RequestBody StripePaymentDTO stripePaymentDTO) throws StripeException {
         System.out.println("StripePaymentDTO Received " + stripePaymentDTO);
-        PaymentIntent paymentIntent = stripeService.paymentIntent(stripePaymentDTO);
+        String email = authUtil.loggedInEmail();
+        PaymentIntent paymentIntent = stripeService.paymentIntent(email, stripePaymentDTO);
         return new ResponseEntity<>(paymentIntent.getClientSecret(), HttpStatus.CREATED);
     }
 

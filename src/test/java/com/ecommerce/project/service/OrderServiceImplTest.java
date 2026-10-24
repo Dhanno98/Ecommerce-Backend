@@ -36,6 +36,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -98,6 +100,12 @@ public class OrderServiceImplTest {
     @Mock
     PaginationValidator paginationValidator;
 
+    @Mock
+    CacheManager cacheManager;
+
+    @Mock
+    Cache cache;
+
     /// placeOrder()
     @Test
     void placeOrderShouldSuccessfullyPlaceOrder() {
@@ -156,6 +164,9 @@ public class OrderServiceImplTest {
 
         when(orderItemRepository.saveAll(anyList()))
                 .thenReturn(orderItems);
+
+        when(cacheManager.getCache("products"))
+                .thenReturn(cache);
 
         when(modelMapper.map(savedOrder, OrderDTO.class))
                 .thenReturn(orderDTO);
@@ -216,6 +227,8 @@ public class OrderServiceImplTest {
         verify(addressRepository).findByIdAndUserEmailId(1L, email);
         verify(paymentService).createSuccessfulPayment(any(Order.class), eq(paymentMethod), eq(paymentIntentId));
         verify(productRepository).save(product);
+        verify(cacheManager).getCache("products");
+        verify(cache).evict(product.getProductId());
         verify(cartRepository).save(cart);
         verify(modelMapper).map(savedOrder, OrderDTO.class);
         verify(modelMapper).map(orderItem, OrderItemResponseDTO.class);

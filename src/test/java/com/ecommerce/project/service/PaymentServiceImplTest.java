@@ -9,6 +9,8 @@ import com.ecommerce.project.model.PaymentMethod;
 import com.ecommerce.project.model.PaymentStatus;
 import com.ecommerce.project.model.User;
 import com.ecommerce.project.repositories.PaymentRepository;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,9 +39,12 @@ public class PaymentServiceImplTest {
     @Mock
     PaymentRepository paymentRepository;
 
+    @Mock
+    StripePaymentIntentClient stripePaymentIntentClient;
+
     /// createSuccessfulPayment()
     @Test
-    void createSuccessfulPaymentShouldCreateAPaymentSuccessfully() {
+    void createSuccessfulPaymentShouldCreateAPaymentSuccessfully() throws StripeException {
         User user = createUser(1L);
 
         Address address = createAddress();
@@ -50,6 +56,20 @@ public class PaymentServiceImplTest {
 
         PaymentMethod paymentMethod = PaymentMethod.CARD;
         String paymentIntentId = "MOCK";
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve(paymentIntentId))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("succeeded");
+
+        when(paymentIntent.getAmount())
+                .thenReturn(27000L);
+
+        when(paymentIntent.getCurrency())
+                .thenReturn("usd");
 
         Payment savedPayment = createPayment(order, paymentMethod);
 
@@ -75,10 +95,12 @@ public class PaymentServiceImplTest {
         assertEquals("Stripe", payment.getPgName());
 
         assertSame(savedPayment, result);
+
+        verify(stripePaymentIntentClient).retrieve(paymentIntentId);
     }
 
     @Test
-    void createSuccessfulPaymentShouldThrowApiExceptionIfThePaymentIsAlreadyProcessed() {
+    void createSuccessfulPaymentShouldThrowApiExceptionIfThePaymentIsAlreadyProcessed() throws StripeException {
         User user = createUser(1L);
 
         Address address = createAddress();
@@ -90,6 +112,20 @@ public class PaymentServiceImplTest {
 
         PaymentMethod paymentMethod = PaymentMethod.CARD;
         String paymentIntentId = "MOCK";
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve(paymentIntentId))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("succeeded");
+
+        when(paymentIntent.getAmount())
+                .thenReturn(27000L);
+
+        when(paymentIntent.getCurrency())
+                .thenReturn("usd");
 
         Payment savedPayment = createPayment(order, paymentMethod);
 
@@ -103,7 +139,125 @@ public class PaymentServiceImplTest {
 
         assertEquals("This payment has already been processed", exception.getMessage());
 
+        verify(stripePaymentIntentClient).retrieve(paymentIntentId);
         verify(paymentRepository).findByPgPaymentId(paymentIntentId);
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void createSuccessfulPaymentShouldThrowApiExceptionIfPaymentHasNotSucceeded() throws StripeException {
+        User user = createUser(1L);
+
+        Address address = createAddress();
+        address.setAddressId(1L);
+        address.setUser(user);
+
+        Order order = createOrder(user, address);
+        order.setTotalAmount(new BigDecimal("270"));
+
+        PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve(paymentIntentId))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("requires_payment_method");
+
+        APIException exception = assertThrows(
+                APIException.class,
+                () -> paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId)
+        );
+
+        assertEquals("Stripe payment has not succeeded", exception.getMessage());
+
+        verify(stripePaymentIntentClient).retrieve(paymentIntentId);
+        verify(paymentIntent).getStatus();
+        verify(paymentRepository, never()).findByPgPaymentId(paymentIntentId);
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void createSuccessfulPaymentShouldThrowApiExceptionIfPaymentAmountDoesNotMatch() throws StripeException {
+        User user = createUser(1L);
+
+        Address address = createAddress();
+        address.setAddressId(1L);
+        address.setUser(user);
+
+        Order order = createOrder(user, address);
+        order.setTotalAmount(new BigDecimal("270"));
+
+        PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve(paymentIntentId))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("succeeded");
+
+        when(paymentIntent.getAmount())
+                .thenReturn(26000L);
+
+        APIException exception = assertThrows(
+                APIException.class,
+                () -> paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId)
+        );
+
+        assertEquals("Stripe payment amount does not match order amount", exception.getMessage());
+
+        verify(stripePaymentIntentClient).retrieve(paymentIntentId);
+        verify(paymentIntent).getStatus();
+        verify(paymentIntent).getAmount();
+        verify(paymentRepository, never()).findByPgPaymentId(paymentIntentId);
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void createSuccessfulPaymentShouldThrowApiExceptionIfPaymentCurrencyDoesNotMatch() throws StripeException {
+        User user = createUser(1L);
+
+        Address address = createAddress();
+        address.setAddressId(1L);
+        address.setUser(user);
+
+        Order order = createOrder(user, address);
+        order.setTotalAmount(new BigDecimal("270"));
+
+        PaymentMethod paymentMethod = PaymentMethod.CARD;
+        String paymentIntentId = "MOCK";
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve(paymentIntentId))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("succeeded");
+
+        when(paymentIntent.getAmount())
+                .thenReturn(27000L);
+
+        when(paymentIntent.getCurrency())
+                .thenReturn("inr");
+
+        APIException exception = assertThrows(
+                APIException.class,
+                () -> paymentService.createSuccessfulPayment(order, paymentMethod, paymentIntentId)
+        );
+
+        assertEquals("Stripe payment currency does not match order currency", exception.getMessage());
+
+        verify(stripePaymentIntentClient).retrieve(paymentIntentId);
+        verify(paymentIntent).getStatus();
+        verify(paymentIntent).getAmount();
+        verify(paymentIntent).getCurrency();
+        verify(paymentRepository, never()).findByPgPaymentId(paymentIntentId);
         verify(paymentRepository, never()).save(any(Payment.class));
     }
 

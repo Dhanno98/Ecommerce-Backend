@@ -1,6 +1,10 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.exceptions.APIException;
+import com.ecommerce.project.exceptions.ResourceNotFoundException;
+import com.ecommerce.project.model.Cart;
 import com.ecommerce.project.payload.StripePaymentDTO;
+import com.ecommerce.project.repositories.CartRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -14,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -23,6 +29,8 @@ public class StripeServiceImpl implements StripeService {
     @Value("${stripe.secret.key}")
     private String stripeApiKey;
 
+    private final CartRepository cartRepository;
+
     @PostConstruct
     public void init() {
         Stripe.apiKey = stripeApiKey;
@@ -30,7 +38,7 @@ public class StripeServiceImpl implements StripeService {
     }
 
     @Override
-    public PaymentIntent paymentIntent(StripePaymentDTO stripePaymentDTO) throws StripeException {
+    public PaymentIntent paymentIntent(String email, StripePaymentDTO stripePaymentDTO) throws StripeException {
 
         /* search() method NOT AVAILABLE IN INDIA!
         Customer customer;
@@ -65,6 +73,19 @@ public class StripeServiceImpl implements StripeService {
         }
         */
 
+        Cart cart = cartRepository.findCartByEmail(email);
+
+        if (cart == null) {
+            throw new ResourceNotFoundException("Cart", "email", email);
+        }
+
+        BigDecimal cartTotalInCents = cart.getTotalPrice().multiply(BigDecimal.valueOf(100));
+        long amountInCents = cartTotalInCents.longValueExact();
+
+        if (stripePaymentDTO.getAmount() == null || stripePaymentDTO.getAmount() != amountInCents) {
+            throw new APIException("Payment amount does not match cart total");
+        }
+
         log.info("Stripe payment intent creation requested. amount={}, currency={}",
                 stripePaymentDTO.getAmount(), stripePaymentDTO.getCurrency());
 
@@ -89,7 +110,7 @@ public class StripeServiceImpl implements StripeService {
 
             PaymentIntentCreateParams params =
                     PaymentIntentCreateParams.builder()
-                            .setAmount(stripePaymentDTO.getAmount())
+                            .setAmount(amountInCents)
                             .setCurrency(stripePaymentDTO.getCurrency())
                             .setCustomer(customer.getId())
                             .setDescription(stripePaymentDTO.getDescription())
@@ -110,6 +131,9 @@ public class StripeServiceImpl implements StripeService {
                             .setAutomaticPaymentMethods(
                                     PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                             .setEnabled(true)
+                                            .setAllowRedirects(
+                                                    PaymentIntentCreateParams.AutomaticPaymentMethods.AllowRedirects.NEVER
+                                            )
                                             .build()
                             )
                             .build();
