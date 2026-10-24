@@ -28,6 +28,8 @@ import com.ecommerce.project.repositories.ProductRepository;
 import com.ecommerce.project.repositories.RoleRepository;
 import com.ecommerce.project.repositories.UserRepository;
 import com.ecommerce.project.security.services.UserDetailsImpl;
+import com.ecommerce.project.service.StripePaymentIntentClient;
+import com.stripe.model.PaymentIntent;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
@@ -49,6 +52,8 @@ import static com.ecommerce.project.model.OrderStatus.DELIVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -99,6 +104,9 @@ public class OrderControllerIT {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @MockitoBean
+    private StripePaymentIntentClient stripePaymentIntentClient;
+
     /// orderProducts()
     @Test
     void orderProductsShouldSuccessfullyPlaceTheOrder() throws Exception {
@@ -132,6 +140,20 @@ public class OrderControllerIT {
         savedCart.setTotalPrice(savedCartItem.getProductPrice().multiply(BigDecimal.valueOf(savedCartItem.getQuantity())));
         cartRepository.save(savedCart);
         BigDecimal cartTotal = savedCart.getTotalPrice();
+
+        PaymentIntent paymentIntent = mock(PaymentIntent.class);
+
+        when(stripePaymentIntentClient.retrieve("MOCK"))
+                .thenReturn(paymentIntent);
+
+        when(paymentIntent.getStatus())
+                .thenReturn("succeeded");
+
+        when(paymentIntent.getAmount())
+                .thenReturn(cartTotal.multiply(BigDecimal.valueOf(100)).longValueExact());
+
+        when(paymentIntent.getCurrency())
+                .thenReturn("usd");
 
         OrderRequestDTO orderRequestDTO = createOrderRequestDTO(savedAddress.getAddressId(), PaymentMethod.CARD, "MOCK");
         String json = objectMapper.writeValueAsString(orderRequestDTO);

@@ -30,6 +30,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -63,6 +65,8 @@ public class OrderServiceImpl implements OrderService {
     private final ModelMapper modelMapper;
 
     private final AuthUtil authUtil;
+
+    private final CacheManager cacheManager;
 
     private final ImageUrlUtil imageUrlUtil;
 
@@ -140,6 +144,7 @@ public class OrderServiceImpl implements OrderService {
             Product product = cartItem.getProduct();
             product.setQuantity(product.getQuantity() - cartItem.getQuantity());
             productRepository.save(product);
+            evictProductCache(product.getProductId());
         }
         cartItems.clear();
         cart.setTotalPrice(BigDecimal.ZERO);
@@ -312,5 +317,12 @@ public class OrderServiceImpl implements OrderService {
         dto.setImage(imageUrlUtil.constructImageUrl(item.getProduct().getImage()));
         dto.setQuantityOrdered(item.getQuantity());
         return dto;
+    }
+
+    private void evictProductCache(Long productId) {
+        Cache cache = cacheManager.getCache("products");
+        if (cache != null) {
+            cache.evict(productId);
+        }
     }
 }

@@ -2,8 +2,7 @@
 
 A production-oriented RESTful backend API built with Spring Boot for a multi-role
 e-commerce platform, featuring JWT authentication, role-based authorization,
-product management, shopping cart, Stripe payments, image uploads, Redis
-caching, and comprehensive automated testing.
+product management, shopping cart, Stripe payments, image uploads, Redis-compatible caching, and comprehensive automated testing.
 
 ![Java](https://img.shields.io/badge/Java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.x-6DB33F)
@@ -12,6 +11,7 @@ caching, and comprehensive automated testing.
 ![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-Hibernate-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791)
 ![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED)
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF)
 ![Redis](https://img.shields.io/badge/Redis-Caching-DC382D)
 ![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D)
@@ -23,9 +23,9 @@ caching, and comprehensive automated testing.
 
 🚀 **Want to try the application?**  
 
-**Backend Swagger UI:** [https://sb-ecom-1-0.onrender.com/swagger-ui/index.html](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
+**Backend API Documentation:** [Swagger UI](http://ecom-app-env.eba-8pmb7bz6.ap-southeast-2.elasticbeanstalk.com/swagger-ui/index.html)
 
-**Live Application:** [https://dhanno-ecommerce.netlify.app/](https://dhanno-ecommerce.netlify.app/)
+**Live Application:** [Netlify](https://dhanno-ecommerce.netlify.app/)
 
 🚀 **Want to run the application locally?**
 
@@ -109,7 +109,7 @@ for running the application locally or with Docker, see
 
 * Redis-based caching for frequently accessed product data
 * Configurable cache expiration using Spring Cache and Redis
-* Cache updates on product modifications and eviction on product deletion
+* Cache updates on product modifications and eviction on product deletion or when inventory changes after order placement.
 
 ### Quality & Testing
 
@@ -120,27 +120,30 @@ for running the application locally or with Docker, see
 
 ## Tech Stack
 
-| Category              | Technology                 | Usage                                          |
-|-----------------------|----------------------------|------------------------------------------------|
-| **Language**          | Java 21                    | Primary programming language                   |
-| **Framework**         | Spring Boot 4.x            | Core backend framework                         |
-| **Web**               | Spring MVC                 | REST API development                           |
-| **Security**          | Spring Security, JWT       | Authentication and role-based authorization    |
-| **Persistence**       | Spring Data JPA, Hibernate | ORM and repository abstraction                 |
-| **Database**          | PostgreSQL                 | Relational database                            |
-| **Caching**           | Redis, Spring Cache        | Caching of frequently accessed product data    |
-| **Containerization**  | Docker, Docker Compose     | Application containerization and orchestration |
-| **Validation**        | Jakarta Bean Validation    | Request validation                             |
-| **API Documentation** | Swagger / OpenAPI          | Interactive REST API documentation             |
-| **Payment Gateway**   | Stripe                     | Secure online payment processing               |
-| **Build Tool**        | Maven                      | Dependency management and project build        |
-| **Testing**           | JUnit 5, Mockito           | Unit and integration testing                   |
-| **Logging**           | SLF4J, Logback             | Application logging                            |
-| **Utilities**         | Lombok                     | Reduces boilerplate code                       |
-| **Backend Hosting**   | Render                     | Production backend hosting                     |
-| **Database Hosting**  | Neon                       | Managed PostgreSQL hosting                     |
-| **Cache Hosting**     | Render Key Value (Valkey)  | Production Redis-compatible caching            |
-| **Frontend Hosting**  | Netlify                    | Production React frontend hosting              |
+| Category                | Technology                               | Usage                                                               |
+|-------------------------|------------------------------------------|---------------------------------------------------------------------|
+| **Language**            | Java 21                                  | Primary programming language                                        |
+| **Framework**           | Spring Boot 4.x                          | Core backend framework                                              |
+| **Web**                 | Spring MVC                               | REST API development                                                |
+| **Security**            | Spring Security, JWT                     | Authentication and role-based authorization                         |
+| **Persistence**         | Spring Data JPA, Hibernate               | ORM and repository abstraction                                      |
+| **Database**            | PostgreSQL                               | Relational database                                                 |
+| **Caching**             | Redis, Spring Cache                      | Caching of frequently accessed product data                         |
+| **Containerization**    | Docker                                   | Builds and runs the application container                           |
+| **Local Development**   | Docker Compose                           | Runs the application with local PostgreSQL and persistent volumes   |
+| **Validation**          | Jakarta Bean Validation                  | Request validation                                                  |
+| **API Documentation**   | Swagger / OpenAPI                        | Interactive REST API documentation                                  |
+| **Payment Gateway**     | Stripe                                   | Secure online payment processing                                    |
+| **Build Tool**          | Maven                                    | Dependency management and project build                             |
+| **Testing**             | JUnit 5, Mockito                         | Unit and integration testing                                        |
+| **Logging**             | SLF4J, Logback                           | Application logging                                                 |
+| **Utilities**           | Lombok                                   | Reduces boilerplate code                                            |
+| **Backend Hosting**     | AWS Elastic Beanstalk                    | Hosts the Dockerized Spring Boot backend                            |
+| **Application Runtime** | Amazon EC2                               | Runs the Docker container managed by Elastic Beanstalk              |
+| **Database Hosting**    | Amazon RDS for PostgreSQL                | Managed production PostgreSQL database                              |
+| **Cache Hosting**       | Amazon ElastiCache Serverless for Valkey | Production Redis-compatible caching                                 |
+| **Container Registry**  | Docker Hub                               | Stores the Docker image used by Elastic Beanstalk                   |
+| **Frontend Hosting**    | Netlify                                  | Hosts the React frontend                                            |
 
 ## Architecture
 
@@ -163,6 +166,8 @@ flowchart TD
 
     Database[("PostgreSQL")]
 
+    Cache[("Redis Caching")]
+
     Stripe["Stripe API"]
 
     File["File Storage"]
@@ -176,6 +181,7 @@ flowchart TD
     Service --> Repository
     Repository --> Database
 
+    Service --> Cache
     Service --> Stripe
     Service --> File
 
@@ -191,25 +197,26 @@ flowchart TD
 | **Business Service Layer**  | Implements the application's business logic, including authentication, product catalog management, shopping cart operations, order processing, payment integration, analytics, inventory management, and coordination with supporting components.                               |
 | **Repository Layer**        | Uses Spring Data JPA repositories to perform database operations and custom queries while abstracting persistence logic from the business layer.                                                                                                                                |
 | **Shared Components**       | Reusable infrastructure including `ImageUrlUtil`, `AuthUtil`, `PaginationValidator`, request validation, and centralized exception handling that is shared across multiple modules.                                                                                             |
-| **Stripe Integration**      | Integrates with the Stripe API to support payment intent creation and payment processing for customer checkout.                                                                                                                                                                 |
-| **File Storage**            | Stores uploaded product images on the application's filesystem. Local execution uses the backend filesystem, while Docker Compose mounts the image directory to the persistent `product-images` volume. In production, images are stored on the Render application filesystem.  |
+| **Stripe Integration**      | Creates Stripe PaymentIntents, retrieves PaymentIntents for server-side verification, validates payment status/amount/currency, and prevents duplicate payment processing.                                                                                                      |
+| **File Storage**            | Stores uploaded product images on the application's filesystem. Local execution uses the backend filesystem, while Docker Compose mounts the image directory to the persistent `product-images` volume. In production, images are stored on the filesystem of the EC2 instance. |
 | **Database**                | PostgreSQL stores all application data, including users, roles, products, categories, carts, addresses, orders, payments, and related domain entities.                                                                                                                          |
 
 ## Production Deployment
 
-The backend is containerized using Docker and deployed as a production Spring Boot application.
+The backend is containerized using Docker and deployed to AWS Elastic Beanstalk. Elastic Beanstalk manages an EC2 instance running the Docker container, while Amazon RDS provides managed PostgreSQL storage and Amazon ElastiCache Serverless for Valkey provides the production caching layer.
 
 ### Production Infrastructure
 
-| Component            | Technology                | Purpose                             |
-|----------------------|---------------------------|-------------------------------------|
-| **Application**      | Spring Boot               | Backend REST API                    |
-| **Containerization** | Docker                    | Packages and runs the application   |
-| **Backend Hosting**  | Render                    | Hosts the production backend        |
-| **Database**         | Neon PostgreSQL           | Production relational database      |
-| **Caching**          | Render Key Value (Valkey) | Production Redis-compatible cache   |
-| **Frontend**         | Netlify                   | Hosts the React frontend            |
-| **Payments**         | Stripe                    | Production payment processing       |
+| Component              | Technology                               | Purpose                                                                  |
+|------------------------|------------------------------------------|--------------------------------------------------------------------------|
+| **Frontend**           | Netlify                                  | Hosts the React frontend                                                 |
+| **Backend**            | AWS Elastic Beanstalk                    | Manages deployment and runtime of the Dockerized Spring Boot application |
+| **Compute**            | Amazon EC2                               | Runs the Docker container under Elastic Beanstalk                        |
+| **Container Registry** | Docker Hub                               | Stores the application Docker image                                      |
+| **Database**           | Amazon RDS PostgreSQL                    | Managed relational database                                              |
+| **Cache**              | Amazon ElastiCache Serverless for Valkey | Redis-compatible caching                                                 |
+| **Payments**           | Stripe                                   | Production payment processing                                            |
+| **Networking**         | Amazon VPC / Security Groups             | Controls network access between the application, database, and cache     |
 
 ### Production Configuration
 
@@ -221,6 +228,7 @@ The application uses environment variables for environment-specific configuratio
 - Redis/Valkey connection URL
 - Frontend URL
 - Image base URL
+- Spring production profile
 
 Production-specific Spring configuration is provided through `application-prod.properties`.
 
@@ -228,9 +236,9 @@ The production server port is configurable through the `PORT` environment variab
 
 ### Production API
 
-Interactive API documentation is available through Swagger UI:
+The production backend is deployed on AWS Elastic Beanstalk and Swagger UI is available at:
 
-[**https://sb-ecom-1-0.onrender.com/swagger-ui/index.html**](https://sb-ecom-1-0.onrender.com/swagger-ui/index.html)
+[**http://ecom-app-env.eba-8pmb7bz6.ap-southeast-2.elasticbeanstalk.com/swagger-ui/index.html**](http://ecom-app-env.eba-8pmb7bz6.ap-southeast-2.elasticbeanstalk.com/swagger-ui/index.html)
 
 ### Production Architecture
 
@@ -241,11 +249,11 @@ flowchart LR
 
     Frontend["React Frontend<br/>Netlify"]
 
-    Backend["Spring Boot API<br/>Render"]
+    Backend["AWS Elastic Beanstalk<br/>Dockerized Spring Boot<br/>Running on EC2"]
 
-    Database[("PostgreSQL<br/>Neon")]
+    Database[("Amazon RDS<br/>PostgreSQL")]
 
-    Cache[("Redis / Valkey<br/>Render")]
+    Cache[("Amazon ElastiCache<br/>Serverless Valkey")]
 
     Stripe["Stripe API"]
 
@@ -257,6 +265,25 @@ flowchart LR
     Backend --> Stripe
 ```
 
+### Deployment Flow
+
+```mermaid
+flowchart LR
+
+    Code["Application Source Code"]
+    Build["Docker Build"]
+    Image["Docker Image<br/>dhanno27/sb-ecom"]
+    Registry["Docker Hub"]
+    EB["AWS Elastic Beanstalk"]
+    Runtime["Docker Container<br/>Spring Boot"]
+
+    Code --> Build
+    Build --> Image
+    Image --> Registry
+    Registry --> EB
+    EB --> Runtime
+```
+Elastic Beanstalk pulls the Docker image from Docker Hub and runs it in a Docker container on the underlying EC2 instance.
 
 ## Project Structure
 
@@ -678,19 +705,19 @@ flowchart LR
 
 ### Workflow Stages
 
-| Stage                            | Description                                                                                                                                                                 |
-|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **User Registration**            | A new user creates an account through the signup endpoint. The password is hashed using BCrypt before being stored, and the default ROLE_USER is assigned to the account.   |
-| **User Login**                   | The user authenticates with their credentials. Upon successful authentication, the backend generates a JWT that is used for subsequent authenticated requests.              |
-| **Product Browsing**             | Browse products, categories, pricing, inventory, and product images through the catalog APIs.                                                                               |
-| **Add Products to Cart**         | Selected products are added to the customer's shopping cart, where quantities can be updated or removed before checkout.                                                    |
-| **Manage Shipping Address**      | Create or update shipping addresses that can later be selected during order placement.                                                                                      |
-| **Checkout**                     | The application validates the shopping cart, verifies inventory availability, calculates the order total, and prepares the order for payment.                               |
-| **Create Stripe Payment Intent** | When using the frontend application, the backend creates a Stripe Payment Intent that is used to securely process the payment.                                              |
-| **Confirm Payment**              | After a successful payment, the frontend submits the payment details (including the Payment Intent ID) to the backend as part of the order request.                         |
-| **Place Order**                  | The backend validates the payment information, creates the order and order items, stores the payment record, associates the shipping address, and persists the transaction. |
-| **Update Inventory**             | The inventory of purchased products is updated to reflect the quantities ordered, ensuring accurate stock levels for future purchases.                                                      |
-| **View Order History**           | Users can retrieve their previous orders and view order details and order status through authenticated endpoints.                                                             |
+| Stage                            | Description                                                                                                                                                                                                                                                                     |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **User Registration**            | A new user creates an account through the signup endpoint. The password is hashed using BCrypt before being stored, and the default ROLE_USER is assigned to the account.                                                                                                       |
+| **User Login**                   | The user authenticates with their credentials. Upon successful authentication, the backend generates a JWT that is used for subsequent authenticated requests.                                                                                                                  |
+| **Product Browsing**             | Browse products, categories, pricing, inventory, and product images through the catalog APIs.                                                                                                                                                                                   |
+| **Add Products to Cart**         | Selected products are added to the customer's shopping cart, where quantities can be updated or removed before checkout.                                                                                                                                                        |
+| **Manage Shipping Address**      | Create or update shipping addresses that can later be selected during order placement.                                                                                                                                                                                          |
+| **Checkout**                     | The application validates the shopping cart, verifies inventory availability, calculates the order total, and prepares the order for payment.                                                                                                                                   |
+| **Create Stripe Payment Intent** | When using the frontend application, the backend creates a Stripe Payment Intent that is used to securely process the payment.                                                                                                                                                  |
+| **Confirm Payment**              | After the payment is confirmed with Stripe, the frontend submits the Payment Intent ID together with the selected shipping address to the backend as part of the order request.                                                                                                 |
+| **Place Order**                  | The backend retrieves and verifies the Stripe PaymentIntent, validates its successful status, verifies that the payment amount matches the server-calculated order total and that the currency is USD, and prevents the same PaymentIntent from being processed more than once. |
+| **Update Inventory**             | The inventory of purchased products is updated to reflect the quantities ordered, ensuring accurate stock levels for future purchases.                                                                                                                                          |
+| **View Order History**           | Users can retrieve their previous orders and view order details and order status through authenticated endpoints.                                                                                                                                                               |
 
 ## API Documentation
 
@@ -724,7 +751,7 @@ The API documentation is automatically generated from the application's source c
 
 The application integrates with **Stripe** to provide secure online payment processing using the **Payment Intents API**. Rather than processing card information directly, the backend creates a Stripe Payment Intent through the Stripe API and returns its client secret to the frontend. The frontend then securely collects the customer's payment details using Stripe.js and completes the payment.
 
-After Stripe confirms the payment, the frontend submits the Payment Intent ID together with the selected shipping address to the backend for order processing.
+After Stripe confirms the payment, the frontend submits the Payment Intent ID together with the selected shipping address to the backend as part of the order request.
 
 ### Payment Flow
 
@@ -763,14 +790,15 @@ flowchart LR
 
 ### Backend Responsibilities
 
-| Responsibility | Description |
-|----------------|-------------|
-| **Create Payment Intent** | Creates a Stripe Payment Intent based on the order amount and customer information. |
-| **Return Client Secret** | Returns the Payment Intent client secret to the frontend so Stripe.js can securely collect payment details and confirm the payment. |
-| **Receive Payment Intent ID** | Accepts the Payment Intent ID together with the order request after the payment is completed. |
-| **Prevent Duplicate Payments** | Ensures that each Stripe Payment Intent ID can only be processed once, preventing duplicate order creation. |
-| **Persist Payment Information** | Stores payment information together with the generated order for future reference. |
-| **Order Processing** | Creates the order, persists the associated order items, updates inventory, and clears the user's shopping cart. |
+| Responsibility | Description                                                                                                                                                                                                             |
+|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Create Payment Intent** | Creates a Stripe Payment Intent based on the server calculated cart amount and customer information.                                                                                                                    |
+| **Return Client Secret** | Returns the Payment Intent client secret to the frontend so Stripe.js can securely collect payment details and confirm the payment.                                                                                     |
+| **Receive Payment Intent ID** | Accepts the Payment Intent ID together with the order request after payment confirmation.                                                                                                                               |
+| **Validate Payment** | Retrieves the PaymentIntent from Stripe and verifies that its status is `succeeded`, its amount matches the server-calculated order total, its currency is `USD`, and the PaymentIntent has not already been processed. |
+| **Prevent Duplicate Payments** | Ensures that each Stripe Payment Intent ID can only be processed once, preventing duplicate order creation.                                                                                                             |
+| **Persist Payment Information** | Stores the successfully verified payment information together with the generated order.                                                                                                                                 |
+| **Order Processing** | Creates the order, persists order items, updates inventory, evicts affected product cache entries, and clears the user's shopping cart.                                                                                 |
 
 ### Security Considerations
 
@@ -802,11 +830,9 @@ database storage.
 
 ### Production Storage
 
-In the current production deployment, the backend runs on Render and uploaded images
-are stored in the backend container's filesystem.
+In production, uploaded images are stored on the filesystem of the EC2 instance running the Docker container under Elastic Beanstalk.
 
-Render's filesystem is ephemeral, so uploaded images are not guaranteed to survive
-application redeployments or restarts.
+This filesystem is ephemeral from an application architecture perspective. Images may be lost when Elastic Beanstalk replaces or recreates the underlying instance, so persistent object storage such as Amazon S3 would be a future improvement.
 
 ### Upload Flow
 
@@ -948,18 +974,19 @@ The current implementation provides a complete and functional e-commerce backend
 
 ### Security
 
-| Improvement | Description |
-|------------|-------------|
-| **Rate Limiting** | Protect public APIs against abuse and brute-force attacks by limiting request rates per client or user. |
+| Improvement               | Description                                                                                                                               |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| **Rate Limiting**         | Protect public APIs against abuse and brute-force attacks by limiting request rates per client or user.                                   |
+| **HTTPS / Custom Domain** | Configure HTTPS and a custom domain for the production API instead of exposing the Elastic Beanstalk environment URL directly over HTTP.  |
 
 ---
 
 ### Reliability
 
-| Improvement | Description |
-|------------|-------------|
-| **Stock Concurrency Handling** | Prevent overselling during concurrent purchases by introducing optimistic or pessimistic locking strategies. |
-| **Stripe Webhooks** | Verify payment completion using Stripe webhooks instead of relying solely on client-side confirmation, improving payment reliability. |
+| Improvement                    | Description                                                                                                                                                                    |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Stock Concurrency Handling** | Prevent overselling during concurrent purchases by introducing optimistic or pessimistic locking strategies.                                                                   |
+| **Stripe Webhooks**            | Use Stripe webhooks to independently receive and verify asynchronous payment events, improving payment reliability beyond relying solely on client-initiated order placement.  |
 
 ---
 
@@ -976,6 +1003,14 @@ The current implementation provides a complete and functional e-commerce backend
 | Improvement | Description |
 |------------|-------------|
 | **Email Notifications** | Send transactional emails for account registration, order confirmation, payment updates, and password reset workflows. |
+
+---
+
+### Storage
+
+| Improvement                   | Description                                                                                                                                |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| **Persistent Object Storage** | Store uploaded product images in Amazon S3 instead of the application filesystem so images survive instance replacement and redeployment.  |
 
 ---
 
